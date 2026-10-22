@@ -1,0 +1,327 @@
+{% extends "user/layout.html" %}
+{% block title %}Uploaded Videos — Spectra.{% endblock %}
+
+{% block extra_head %}
+<style>
+  .uploaded-videos-page { max-width: 1440px; }
+  .uploaded-videos-card {
+    background: rgba(255,255,255,0.45);
+    border: 1px solid rgba(90, 102, 125, 0.18);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(18, 24, 38, 0.04);
+  }
+  .uploaded-videos-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px 10px;
+    border-bottom: 1px solid rgba(40, 52, 73, 0.12);
+    background: rgba(255,255,255,0.18);
+  }
+  .uploaded-videos-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: #2b2e40;
+  }
+  .uploaded-videos-label::before {
+    content: "";
+    width: 4px;
+    height: 22px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #5c6df7, #7e8dff);
+    display: inline-block;
+  }
+  .uploaded-videos-count {
+    color: #6b7280;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .uploaded-videos-table-wrap { overflow-x: auto; }
+  .uploaded-videos-table {
+    width: 100%;
+    min-width: 780px;
+    margin: 0;
+    color: var(--text-primary);
+    table-layout: fixed;
+    border-collapse: collapse;
+    border-spacing: 0;
+    background: rgba(255,255,255,0.1);
+  }
+  .uploaded-videos-table thead th {
+    padding: .82rem 1rem;
+    background: #2d3a4c;
+    color: #f3f6fc;
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.1);
+    white-space: nowrap;
+    text-align: left;
+    vertical-align: middle;
+  }
+  .uploaded-videos-table thead th:nth-child(3) {
+    text-align: center;
+  }
+  .uploaded-videos-table thead th:nth-child(6) {
+    text-align: right;
+    padding-right: 1.75rem;
+  }
+  .uploaded-videos-table tbody td, .uploaded-videos-table tbody th {
+    padding: 1rem 1rem;
+    border-bottom: 1px solid rgba(116, 126, 143, 0.18);
+    vertical-align: middle;
+    color: #2b2d35;
+    background: rgba(255,255,255,0.14);
+    box-sizing: border-box;
+    min-width: 0;
+  }
+  .uploaded-videos-table tbody tr {
+    height: 122px;
+  }
+  .uploaded-videos-table tbody tr:last-child td, .uploaded-videos-table tbody tr:last-child th { border-bottom: 0; }
+  .uploaded-videos-table tbody tr:hover { background: rgba(248, 250, 255, 0.52); }
+  .uploaded-videos-table .num-cell { font-weight: 700; color: #2d3038; }
+  .uploaded-videos-table .title-cell { vertical-align: middle; }
+  .uploaded-videos-table .title-cell .uploaded-video-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    display: block;
+  }
+  .uploaded-videos-table .video-cell {
+    text-align: center;
+  }
+  .uploaded-videos-table .views-cell { font-variant-numeric: tabular-nums; vertical-align: middle; }
+  .uploaded-videos-table .age-cell { vertical-align: middle; }
+  .uploaded-videos-table .action-cell {
+    text-align: right;
+    vertical-align: middle;
+    padding-right: 1.75rem;
+  }
+  .uploaded-video-preview { position: relative; display: block; width: 128px; aspect-ratio: 16 / 9; overflow: hidden; border: 0; border-radius: 8px; padding: 0; background: #0e1521; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
+  .uploaded-video-preview video { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .uploaded-video-preview .preview-play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; background: rgba(14, 18, 28, .18); opacity: 0; transition: opacity .16s ease; }
+  .uploaded-video-preview:hover .preview-play, .uploaded-video-preview:focus-visible .preview-play { opacity: 1; }
+  .uploaded-video-preview .preview-play i { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: rgba(14, 18, 28, .76); font-size: .8rem; }
+  .uploaded-video-unavailable { display: grid; width: 128px; aspect-ratio: 16 / 9; place-items: center; border-radius: 8px; background: #edf1f5; color: var(--text-muted); }
+  .uploaded-video-title {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.15rem;
+    line-height: 1.25;
+    color: #1f2430;
+    max-width: 100%;
+  }
+  .uploaded-video-status {
+    display: inline-block;
+    color: #4b5563;
+    font-size: 0.8rem;
+  }
+  .uploaded-video-actions { display: flex; justify-content: flex-end; align-items: center; gap: .55rem; }
+  .uploaded-video-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 8px;
+    font-size: .92rem;
+    line-height: 1;
+    border-width: 1px;
+  }
+  .uploaded-video-actions .btn-outline-primary {
+    background: #f2f3ff;
+    border-color: rgba(93, 109, 236, 0.28);
+    color: #4d64d9;
+  }
+  .uploaded-video-actions .btn-outline-primary:hover {
+    background: #e8ebff;
+    color: #3a50c4;
+  }
+  .uploaded-video-actions .btn-outline-danger {
+    background: #fff1f2;
+    border-color: rgba(220, 38, 38, 0.18);
+    color: #ef4444;
+  }
+  .uploaded-video-actions .btn-outline-danger:hover {
+    background: #ffe4e6;
+    color: #d92d2d;
+  }
+  .uploaded-video-modal .modal-content { overflow: hidden; border: 0; border-radius: 8px; background: #10121a; color: #fff; }
+  .uploaded-video-modal .modal-header { border-color: rgba(255,255,255,.12); }
+  .uploaded-video-modal .modal-body { padding: 0; }
+  .uploaded-video-modal video { display: block; width: 100%; max-height: min(72vh, 720px); background: #000; }
+  @media (max-width: 640px) {
+    .uploaded-videos-toolbar { padding: 12px 14px; }
+    .uploaded-videos-table thead th, .uploaded-videos-table tbody td, .uploaded-videos-table tbody th { padding: .75rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="feed-container uploaded-videos-page py-4">
+  {% if request.args.get('delete_error') == 'file_busy' %}
+  <div class="alert alert-warning" role="status">
+    This video is still in use. Stop playback or wait for analysis to finish, then try deleting it again.
+  </div>
+  {% endif %}
+  {% if videos %}
+  <div class="uploaded-videos-card">
+    <div class="uploaded-videos-toolbar">
+      <div class="uploaded-videos-label">Uploaded Videos</div>
+      <div class="uploaded-videos-count">{{ videos|length }} result(s)</div>
+    </div>
+
+    <div class="table-responsive uploaded-videos-table-wrap">
+      <table class="table align-middle uploaded-videos-table">
+        <colgroup>
+          <col style="width: 6%;" />
+          <col style="width: 28%;" />
+          <col style="width: 20%;" />
+          <col style="width: 11%;" />
+          <col style="width: 16%;" />
+          <col style="width: 12%;" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Video Title</th>
+            <th scope="col">Video</th>
+            <th scope="col">Views</th>
+            <th scope="col">Age Group</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for video in videos %}
+          <tr>
+            <th scope="row" class="num-cell">{{ video.serial_number }}</th>
+            <td class="title-cell">
+              <div class="uploaded-video-title">{{ video.title }}</div>
+              <span class="uploaded-video-status">{{ video.status|capitalize }}</span>
+            </td>
+            <td class="video-cell">
+            <div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%;">
+              {% if video.get('hls_master') or video.get('original_filename') %}
+              {% set video_src = url_for('user.video_media', video_id=video['_id'], asset=video['hls_master']) if video.get('hls_master') else url_for('user.video_media', video_id=video['_id'], asset='uploads/' + video['original_filename']) %}
+              <button class="uploaded-video-preview" type="button" data-preview-src="{{ video_src }}" data-preview-title="{{ video.title }}" aria-label="Play preview of {{ video.title }} with sound">
+                <video class="inline-preview-video" muted autoplay loop playsinline preload="metadata" aria-hidden="true">
+                  <source src="{{ video_src }}" type="{{ 'application/x-mpegURL' if video.get('hls_master') else 'video/mp4' }}"/>
+                </video>
+                <span class="preview-play" aria-hidden="true"><i class="fas fa-volume-high"></i></span>
+              </button>
+              {% else %}
+              <div class="uploaded-video-unavailable" aria-label="Video preview unavailable">
+                <i class="fas fa-film" aria-hidden="true"></i>
+              </div>
+              {% endif %}
+            </div>
+          </td>
+          <td class="fw-semibold views-cell" style="padding-top: 1.05rem; padding-bottom: 1.05rem;">{{ '{:,}'.format(video.get('views', 0)|int) }}</td>
+          <td class="text-capitalize age-cell" style="padding-top: 1.05rem; padding-bottom: 1.05rem;">{{ video.get('age_silo', '—') }}</td>
+          <td class="text-end action-cell" style="padding-top: 1.05rem; padding-bottom: 1.05rem;">
+            <div class="uploaded-video-actions">
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('user.uploaded_video_analytics', video_id=video['_id']) }}"
+                 title="View analytics" aria-label="View analytics for {{ video.title }}">
+                <i class="fas fa-chart-line"></i>
+              </a>
+              <form class="d-inline" method="post" action="{{ url_for('user.delete_uploaded_video', video_id=video['_id']) }}"
+                    onsubmit="return confirm('Delete this uploaded video? This cannot be undone.');">
+                <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete video"
+                        aria-label="Delete {{ video.title }}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted">No published videos are available for this profile yet.</p>
+  {% endif %}
+</div>
+
+<div class="modal fade uploaded-video-modal" id="uploadedVideoModal" tabindex="-1" aria-labelledby="uploadedVideoModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-6" id="uploadedVideoModalTitle"></h2>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close preview"></button>
+      </div>
+      <div class="modal-body">
+        <video id="uploadedVideoModalPlayer" controls playsinline preload="metadata"></video>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.5/dist/hls.min.js"></script>
+<script>
+  (() => {
+    const modalElement = document.getElementById('uploadedVideoModal');
+    const modalPlayer = document.getElementById('uploadedVideoModalPlayer');
+    const modalTitle = document.getElementById('uploadedVideoModalTitle');
+    const previewModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const hlsInstances = new Map();
+    let modalHls = null;
+
+    function attachSource(player, source, key) {
+      if (source.endsWith('.m3u8')) {
+        if (player.canPlayType('application/vnd.apple.mpegurl')) {
+          player.src = source;
+        } else if (window.Hls && Hls.isSupported()) {
+          const instance = new Hls();
+          instance.loadSource(source);
+          instance.attachMedia(player);
+          if (key === 'modal') modalHls = instance;
+          else hlsInstances.set(player, instance);
+        }
+      } else {
+        player.src = source;
+      }
+    }
+
+    document.querySelectorAll('.inline-preview-video').forEach((player) => {
+      attachSource(player, player.querySelector('source').src, player);
+      player.play().catch(() => {});
+    });
+
+    document.querySelectorAll('.uploaded-video-preview').forEach((button) => {
+      button.addEventListener('click', () => {
+        modalTitle.textContent = button.dataset.previewTitle;
+        modalPlayer.muted = false;
+        attachSource(modalPlayer, button.dataset.previewSrc, 'modal');
+        previewModal.show();
+        modalPlayer.play().catch(() => {});
+      });
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', () => {
+      modalPlayer.pause();
+      modalPlayer.removeAttribute('src');
+      modalPlayer.load();
+      if (modalHls) {
+        modalHls.destroy();
+        modalHls = null;
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      hlsInstances.forEach((instance) => instance.destroy());
+    });
+  })();
+</script>
+{% endblock %}

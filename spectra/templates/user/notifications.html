@@ -1,0 +1,76 @@
+{% extends "user/layout.html" %}
+{% block title %}Notifications — Spectra.{% endblock %}
+{% block content %}
+<div class="feed-container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <h4 class="mb-0"><i class="fas fa-bell me-2 text-spectra"></i>Notifications</h4>
+    {% if notifications %}
+    <button class="btn btn-outline-spectra btn-sm" onclick="markAllRead()">
+      <i class="fas fa-check-double me-1"></i>Mark all read
+    </button>
+    {% endif %}
+  </div>
+  {% if notifications %}
+  <div class="list-group">
+    {% for n in notifications %}
+    <a class="list-group-item list-group-item-action notif-item text-decoration-none {% if not n.get('is_read', n.get('read', false)) %}fw-semibold{% endif %}"
+       href="{{ n.get('target_url') or n.get('link') or url_for('user.feed') }}"
+       data-notification-id="{{ n['_id'] }}">
+      <div class="d-flex gap-3 align-items-start">
+        <div class="notif-icon"><i class="fas fa-bell text-spectra"></i></div>
+        <div class="flex-grow-1">
+          <strong class="d-block mb-1">{{ n.get('title', 'New activity') }}</strong>
+          <p class="mb-1 small">{{ n.get('message', 'New activity') }}</p>
+          <small class="text-muted">{{ n.get('created_at', '') }}</small>
+        </div>
+        {% if not n.get('is_read', n.get('read', false)) %}<span class="notification-unread-dot" aria-label="Unread"></span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+    <p class="text-muted">No notifications yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function markNotificationRead(notificationId) {
+  const response = await fetch('/api/notifications/mark-read', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(notificationId ? {notification_id: notificationId} : {}),
+  });
+  const data = await response.json();
+  if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to update notifications.');
+}
+
+async function markAllRead() {
+  try {
+    await markNotificationRead();
+    document.getElementById('notifBadge')?.classList.add('d-none');
+    document.querySelectorAll('.notif-item').forEach(el => {
+      el.classList.remove('fw-semibold');
+      el.querySelector('.notification-unread-dot')?.remove();
+    });
+  } catch(error) {
+    console.error('Unable to mark notifications as read:', error);
+  }
+}
+
+document.querySelectorAll('.notif-item').forEach((item) => {
+  item.addEventListener('click', async (event) => {
+    try {
+      await markNotificationRead(item.dataset.notificationId);
+    } catch (error) {
+      event.preventDefault();
+      console.error('Unable to mark notification as read:', error);
+    }
+  });
+});
+</script>
+{% endblock %}

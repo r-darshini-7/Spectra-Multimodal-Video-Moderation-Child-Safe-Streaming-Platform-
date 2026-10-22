@@ -1,0 +1,39 @@
+/* Player-specific styles */
+.vjs-default-skin .vjs-control-bar { display: none !important; } /* We use custom controls */
+.video-js .vjs-tech { border-radius: 10px; }
+.vjs-poster { background-size: cover; }
+
+.comments-toggle {
+	display: flex;
+	width: 100%;
+	align-items: center;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+}
+
+.comments-title-group {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	white-space: nowrap;
+}
+
+.comments-count { line-height: 1; }
+
+.comments-toggle-chevron {
+	margin-left: auto;
+	color: var(--text-muted);
+	font-size: 0.75em;
+	transition: transform 180ms ease;
+}
+
+.comments-toggle[aria-expanded="true"] .comments-toggle-chevron { transform: rotate(180deg); }
+.comments-content[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+	.comments-toggle-chevron { transition-duration: 0.01ms; }
+}

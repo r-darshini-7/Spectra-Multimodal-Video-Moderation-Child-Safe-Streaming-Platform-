@@ -1,0 +1,130 @@
+{% extends "admin/layout.html" %}
+{% block title %}Dashboard — Spectra. Studio{% endblock %}
+{% block page_title %}<i class="fas fa-tachometer-alt mr-2 text-spectra"></i>Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Dashboard</li>{% endblock %}
+
+{% block content %}
+<!-- ── STAT CARDS ─────────────────────────────────────────────────────────── -->
+<div class="row">
+  <div class="col-lg-6 col-6">
+    <div class="small-box admin-stat-card border-spectra">
+      <div class="inner">
+        <h3>{{ published }}</h3>
+        <p>Published Videos</p>
+      </div>
+      <div class="icon"><i class="fas fa-film"></i></div>
+      <a href="{{ url_for('admin.video_list') }}" class="small-box-footer">View published <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+  <div class="col-lg-6 col-6">
+    <div class="small-box admin-stat-card border-info">
+      <div class="inner">
+        <h3 class="text-info">{{ total_accounts }}</h3>
+        <p>Accounts</p>
+      </div>
+      <div class="icon text-info"><i class="fas fa-users"></i></div>
+      <a href="{{ url_for('admin.channel_list') }}" class="small-box-footer text-info">Manage channels <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+</div>
+
+<!-- ── QUICK ACTIONS ──────────────────────────────────────────────────────── -->
+<div class="row mb-4">
+  <div class="col-12">
+    <a href="{{ url_for('admin.add_video_page') }}" class="btn btn-spectra btn-lg mr-3">
+      <i class="fas fa-upload mr-2"></i>Upload & Analyse Video
+    </a>
+    <a href="{{ url_for('user.feed') }}" class="btn btn-outline-secondary btn-lg">
+      <i class="fas fa-tv mr-2"></i>Preview Feed
+    </a>
+  </div>
+</div>
+
+<!-- ── RECENT UPLOADS + AUDIT LOG ─────────────────────────────────────────── -->
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card card-spectra admin-dashboard-card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-film mr-2"></i>Recent Uploads</h3>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0 admin-dashboard-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Silo</th>
+              <th>Status</th>
+              <th>Content scan %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in recent_videos %}
+            <tr>
+              <td>
+                {% if v.status == 'published' %}
+                <a href="{{ url_for('user.watch', v=v['_id']) }}" class="text-spectra">{{ v.title[:40] }}</a>
+                {% else %}
+                {{ v.title[:40] }}
+                {% endif %}
+              </td>
+              <td><span class="badge silo-badge-sm silo-{{ v.age_silo }}">{{ v.age_silo }}</span></td>
+              <td>
+                {% if v.status == 'published' %}
+                  <span class="badge badge-success">Published</span>
+                {% elif v.status == 'flagged' %}
+                  <span class="badge badge-danger">Flagged</span>
+                {% elif v.status == 'transcoding' %}
+                  <span class="badge badge-info">Transcoding</span>
+                {% elif v.status == 'analyzed' %}
+                  <span class="badge badge-warning">Analyzed</span>
+                {% else %}
+                  <span class="badge badge-secondary">{{ v.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if v.get('ai_result') %}
+                  {% set pct = v.ai_result.get('overall_safe_pct') %}
+                  {% if pct is not none %}
+                  <span class="{% if pct >= 70 %}text-success{% else %}text-danger{% endif %}">{{ pct }}%</span>
+                  {% else %}<span class="text-muted">N/A</span>{% endif %}
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-3">No videos have been published yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card card-spectra admin-dashboard-card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-scroll mr-2"></i>Audit Log</h3>
+      </div>
+      <div class="card-body p-0">
+        <div class="audit-log-list">
+          {% for a in recent_audits %}
+          <div class="audit-item d-flex align-items-start gap-2 px-3 py-2 border-bottom border-secondary">
+            <div class="audit-icon">
+              {% if 'published' in a.action %}<i class="fas fa-check-circle text-success"></i>
+              {% elif 'remediat' in a.action %}<i class="fas fa-wrench text-warning"></i>
+              {% elif 'analysis' in a.action %}<i class="fas fa-search text-info"></i>
+              {% else %}<i class="fas fa-circle text-muted"></i>{% endif %}
+            </div>
+            <div>
+              <p class="mb-0 small">{{ a.detail[:70] }}</p>
+              <small class="text-muted">{{ a.created_at.strftime('%b %d %H:%M') if a.get('created_at') else '' }}</small>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-3 small">No audit events yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

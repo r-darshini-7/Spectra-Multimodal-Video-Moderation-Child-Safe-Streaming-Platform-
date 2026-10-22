@@ -1,0 +1,66 @@
+{% extends "user/layout.html" %}
+{% block title %}Badges & Achievements — Spectra.{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css', v='account-settings-7') }}"/>
+{% endblock %}
+
+{% block content %}
+<div class="settings-page achievements-page">
+  <header class="settings-page-header">
+    <div>
+      <p class="settings-eyebrow">YOUR PROGRESS</p>
+      <h2>Badges & Achievements</h2>
+      <p class="text-muted">Celebrate your creative milestones, community, safety, and reach.</p>
+    </div>
+  </header>
+
+  <section class="settings-card">
+    <div class="achievement-stats" aria-label="Achievement progress">
+      <div><strong data-achievement-stat="uploads">{{ badge_overview.metrics.get('total_uploads', 0) }}</strong><span>Published videos</span></div>
+      <div><strong data-achievement-stat="subscribers">{{ badge_overview.metrics.get('total_subscribers', 0) }}</strong><span>Subscribers</span></div>
+      <div><strong data-achievement-stat="views">{{ badge_overview.metrics.get('total_views', 0) }}</strong><span>Total views</span></div>
+      <div><strong data-achievement-stat="streak">{{ badge_overview.metrics.get('clean_streak', 0) }}</strong><span>Clean streak</span></div>
+    </div>
+    <div class="achievement-grid" id="achievementGrid"
+         data-achievements-url="{{ url_for('auth.profile_achievements') }}">
+      {% for badge in badge_overview.badges %}
+      <article class="achievement-card{% if not badge.unlocked %} is-locked{% endif %}"
+               data-badge-id="{{ badge.badge_id }}">
+        <div class="achievement-icon-wrap">
+          {% set icon_class = {
+            'sparkles': 'fa-wand-magic-sparkles',
+            'film': 'fa-film',
+            'users': 'fa-users',
+            'shield-check': 'fa-shield-halved',
+            'star': 'fa-star',
+            'certificate': 'fa-award',
+            'eye': 'fa-eye'
+          }.get(badge.icon, 'fa-award') %}
+          <i class="fas {{ icon_class }}" aria-hidden="true"></i>
+          {% if not badge.unlocked %}<span class="achievement-lock"><i class="fas fa-lock" aria-hidden="true"></i></span>{% endif %}
+        </div>
+        <div class="achievement-card-content">
+          <span class="achievement-category">{{ badge.category }}</span>
+          <h3>{{ badge.name }}</h3>
+          <p>{{ badge.description }}</p>
+          {% if badge.unlocked %}
+          <p class="achievement-unlocked">Unlocked {{ badge.unlocked_at[:10] if badge.unlocked_at else '' }}</p>
+          {% else %}
+          <div class="achievement-progress-label"><span>{{ badge.progress_text }}</span><span>{{ badge.progress_pct }}%</span></div>
+          <div class="progress achievement-progress" role="progressbar" aria-label="{{ badge.name }} progress"
+               aria-valuenow="{{ badge.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" style="width: {{ badge.progress_pct }}%"></div>
+          </div>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  <div class="achievement-toast" id="achievementToast" role="status" aria-live="polite" aria-atomic="true"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/badges.js', v='creator-achievements-2') }}"></script>
+{% endblock %}

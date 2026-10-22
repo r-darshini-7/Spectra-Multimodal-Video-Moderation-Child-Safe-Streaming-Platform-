@@ -1,0 +1,93 @@
+{% extends "user/layout.html" %}
+{% block title %}{{ 'Subscriptions' if subs_only else ('Kids' if age_silo == 'kids' else 'Preschool' if age_silo == 'preschool' else 'Home') }} — Spectra.{% endblock %}
+
+{% block content %}
+<div class="feed-container py-4">
+
+  <!-- Silo / context banner -->
+  {% if subs_only %}
+  <div class="silo-banner mb-4 d-flex align-items-center gap-3">
+    <span class="silo-badge" style="background:rgba(59,130,212,0.15);color:#3b82f4;border:1px solid rgba(59,130,212,0.3);">
+      <i class="fas fa-satellite-dish me-1"></i>Subscriptions
+    </span>
+    <span class="text-muted small">Videos from channels you follow</span>
+  </div>
+  {% elif age_silo in ['kids','preschool','tweens','teens'] %}
+  <div class="silo-banner mb-4 d-flex align-items-center gap-3">
+    {% if age_silo == 'preschool' %}
+      <span class="silo-badge silo-preschool"><i class="fas fa-baby me-1"></i>Preschool Safe</span>
+    {% elif age_silo == 'kids' %}
+      <span class="silo-badge silo-kids"><i class="fas fa-star me-1"></i>Kids Safe</span>
+    {% elif age_silo == 'tweens' %}
+      <span class="silo-badge silo-tweens"><i class="fas fa-puzzle-piece me-1"></i>Tweens</span>
+    {% elif age_silo == 'teens' %}
+      <span class="silo-badge silo-teens"><i class="fas fa-fire me-1"></i>Teens</span>
+    {% endif %}
+    <span class="text-muted small">Content filtered for your profile</span>
+  </div>
+  {% endif %}
+
+  <!-- Categories available to this profile's age group -->
+  <div class="category-chips mb-4 d-flex flex-nowrap gap-2 overflow-x-auto">
+    <a class="chip-btn {{ 'active' if not selected_category else '' }}"
+       href="{{ url_for('user.feed', subs='1' if subs_only else None, q=search_q or None) }}">All</a>
+    {% for category in category_options %}
+    <a class="chip-btn {{ 'active' if selected_category == category else '' }}"
+       href="{{ url_for('user.feed', category=category, subs='1' if subs_only else None, q=search_q or None) }}">{{ category }}</a>
+    {% endfor %}
+  </div>
+
+  <!-- Video grid -->
+  {% if videos %}
+  <div class="video-grid" id="videoGrid">
+    {% for v in videos %}
+    <a href="{{ url_for('user.watch', v=v['_id']) }}" class="video-card-link">
+      <div class="video-card">
+        <div class="video-thumbnail-wrapper">
+          {% if v.get('thumbnail') %}
+          <img src="{{ url_for('user.video_media', video_id=v['_id'], asset='thumbnails/' + v['thumbnail']) }}"
+               class="video-thumbnail" alt="{{ v['title'] }}" loading="lazy"/>
+          {% else %}
+          <div class="video-thumbnail-placeholder">
+            <i class="fas fa-play-circle"></i>
+          </div>
+          {% endif %}
+          {% if v.get('duration_str') and v['duration_str'] != '0:00' %}
+          <div class="video-duration">{{ v['duration_str'] }}</div>
+          {% endif %}
+          <!-- Safe badge -->
+          {% if v.get('ai_result') and v['ai_result'].get('verdict') == 'safe' %}
+          <span class="video-safe-badge" title="AI Verified Safe">
+          </span>
+          {% endif %}
+        </div>
+        <div class="video-info">
+          {% if v.get('creator_avatar') %}
+          <img class="video-channel-avatar" src="{{ v.creator_avatar }}" alt="{{ v.creator_name }}"/>
+          {% else %}
+          <div class="video-channel-avatar">{{ v.get('creator_name', 'C')[0].upper() }}</div>
+          {% endif %}
+          <div class="video-meta">
+            <h3 class="video-title">{{ v['title'] }}</h3>
+            <p class="video-channel-name">{{ v.get('creator_name', 'Creator') }}</p>
+            <p class="video-stats">
+              {{ '{:,}'.format(v.get('views', 0)) }} views · {{ v.get('created_at_rel', '') }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <div class="empty-icon mb-3"><i class="fas fa-video-slash fa-3x text-muted"></i></div>
+    <h5 class="text-muted">No videos available</h5>
+    <p class="text-muted small">
+      {% if search_q %}No results for "{{ search_q }}"{% else %}Content for your profile will appear here{% endif %}
+    </p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

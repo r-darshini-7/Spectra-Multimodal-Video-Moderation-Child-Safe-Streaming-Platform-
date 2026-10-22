@@ -1,0 +1,51 @@
+{% extends "user/layout.html" %}
+{% block title %}{{ video.title }} Analytics — Spectra.{% endblock %}
+
+{% block extra_head %}
+<style>
+  .uploaded-video-chart-panel {
+    padding: 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .uploaded-video-chart-panel h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+  .uploaded-video-chart { position: relative; height: 320px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="feed-container py-4">
+  <a href="{{ url_for('user.uploaded_videos') }}" class="small text-spectra">
+    <i class="fas fa-arrow-left me-1"></i>Uploaded Videos
+  </a>
+  <div class="mt-3 mb-4">
+    <h1 class="h4 mb-1">{{ video.title }}</h1>
+    <p class="text-muted mb-0">Video analytics · {{ video.get('age_silo', '—')|capitalize }} age group</p>
+  </div>
+
+  <section class="uploaded-video-chart-panel">
+    <h2><i class="fas fa-chart-bar me-2 text-spectra"></i>Video Performance</h2>
+    <div class="uploaded-video-chart">
+      <canvas id="videoMetricsChart"
+              data-values='{{ [video.get("views", 0)|int, video.get("likes", 0)|int, video.get("dislikes", 0)|int, video.get("comment_count", 0)|int]|tojson }}'
+              aria-label="Bar graph showing views, likes, dislikes, and comments">
+      </canvas>
+    </div>
+    <p class="visually-hidden">
+      Views: {{ video.get('views', 0) }}. Likes: {{ video.get('likes', 0) }}.
+      Dislikes: {{ video.get('dislikes', 0) }}. Comments: {{ video.get('comment_count', 0) }}.
+    </p>
+  </section>
+
+  <div class="mt-4 small text-muted">
+    <span class="me-3">Status: {{ video.get('status', 'unknown')|capitalize }}</span>
+    <span>Duration: {{ video.get('duration_str', '—') }}</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/uploaded_video_analytics.js') }}"></script>
+{% endblock %}

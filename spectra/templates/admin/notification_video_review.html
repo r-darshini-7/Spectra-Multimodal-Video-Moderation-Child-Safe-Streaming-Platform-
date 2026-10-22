@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ video.get('title') or 'Video review' }} — Admin moderation review</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css', v='admin-alert-center-1') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+      .notification-review { width: min(1050px, calc(100% - 32px)); margin: 48px auto; }
+      .notification-review-header, .notification-review-card {
+        padding: 22px; background: var(--panel); border: 1px solid var(--border);
+        border-radius: 16px; box-shadow: var(--shadow);
+      }
+      .notification-review-header { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin-bottom: 18px; }
+      .notification-review-header h1 { margin: 5px 0; overflow-wrap: anywhere; }
+      .notification-review-header p { color: var(--muted); margin: 0; }
+      .notification-review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+      .notification-review-card h2 { margin: 0 0 12px; font-size: 1.05rem; }
+      .notification-review-card p { color: var(--muted); overflow-wrap: anywhere; }
+      .notification-review-card ul { padding-left: 20px; }
+      .notification-review-status { display: inline-flex; padding: 5px 10px; border-radius: 999px; background: rgba(247, 178, 103, .14); color: var(--orange); font-size: .82rem; }
+      @media (max-width: 620px) {
+        .notification-review { margin: 22px auto; }
+        .notification-review-header { align-items: flex-start; flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body class="admin-console-body">
+    {% set ai = video.get('ai_result', {}) %}
+    {% set policy = ai.get('policy', {}) %}
+    <main class="notification-review">
+      <header class="notification-review-header">
+        <div>
+          <span class="eyebrow">Admin moderation review</span>
+          <h1>{{ video.get('title') or 'Untitled video' }}</h1>
+          <p>Video {{ video.get('_id') }} · {{ video.get('status', 'unknown')|title }}</p>
+        </div>
+        <a class="secondary-button" href="{{ url_for('admin_ops.console') }}">Return to Admin Alerts</a>
+      </header>
+
+      <section class="notification-review-card" aria-label="Moderation status">
+        <h2>Overall moderation status</h2>
+        <span class="notification-review-status">
+          {{ policy.get('compliance_status', ai.get('verdict', 'not analyzed'))|replace('_', ' ')|title }}
+        </span>
+        <p>Approved age groups: {{ (policy.get('permitted_age_silos') or ai.get('permitted_age_silos') or [])|map('title')|join(', ') or 'None' }}</p>
+        <p>Uploaded age group: {{ video.get('age_silo', '—')|title }} · Category: {{ video.get('category', '—') }}</p>
+      </section>
+
+      <section class="notification-review-grid" aria-label="Age-group scan results" style="margin-top: 16px;">
+        {% for result in policy.get('age_group_results', []) %}
+        <article class="notification-review-card">
+          <h2>{{ result.get('age_silo', 'Age group')|replace('_', ' ')|title }}</h2>
+          <p><strong>Scan score:</strong> {{ result.get('scan_score', '—') }}{% if result.get('scan_score') is number %}%{% endif %}</p>
+          <p><strong>Status:</strong> {{ result.get('status', 'Not evaluated') }}</p>
+          {% if result.get('feedback') %}
+          <p>{{ result.get('feedback') }}</p>
+          {% endif %}
+          {% if result.get('remediation_suggestions') %}
+          <h3>Suggested remediation</h3>
+          <ul>
+            {% for suggestion in result.remediation_suggestions %}
+            <li>{{ suggestion }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% if result.get('violations_detected') %}
+          <h3>Detected violations</h3>
+          <ul>
+            {% for violation in result.violations_detected %}
+            <li>{{ violation if violation is string else violation.get('label', violation.get('description', violation.get('type', 'Policy concern'))) }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </article>
+        {% else %}
+        <article class="notification-review-card">
+          <h2>No age-group scan details</h2>
+          <p>This video has no completed tier-specific moderation results yet.</p>
+        </article>
+        {% endfor %}
+      </section>
+    </main>
+  </body>
+</html>

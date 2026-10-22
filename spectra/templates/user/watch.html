@@ -1,0 +1,438 @@
+{% extends "user/layout.html" %}
+{% block title %}{{ video.title }} — Spectra.{% endblock %}
+
+{% block extra_head %}
+<link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/player.css') }}"/>
+{% endblock %}
+
+{% block content %}
+<div class="watch-container">
+  <div class="row g-0 g-lg-4">
+
+    <!-- ═══ LEFT COLUMN: Player + Details ══════════════════════════════════ -->
+    <div class="col-12 col-lg-8">
+
+      <!-- ── VIDEO PLAYER ── -->
+      <div class="player-shell" id="playerShell">
+      <div class="player-fullscreen-content" id="playerFullscreenContent">
+      <div class="player-outer" id="playerOuter">
+        <video id="spectaPlayer" class="video-js vjs-default-skin vjs-big-play-centered"
+           controls preload="auto" playsinline data-setup='{}'
+               {% if vtt_path %}crossorigin="anonymous"{% endif %}>
+          {% if video.get('hls_master') %}
+          <source src="{{ url_for('user.video_media', video_id=video['_id'], asset=video['hls_master']) }}" type="application/x-mpegURL"/>
+          {% elif video.get('original_filename') %}
+          <source src="{{ url_for('user.video_media', video_id=video['_id'], asset='uploads/' + video['original_filename']) }}" type="video/mp4"/>
+          {% endif %}
+          {% if vtt_path %}
+          <track kind="subtitles" src="{{ vtt_path }}" srclang="en" label="English CC" default/>
+          {% endif %}
+        </video>
+
+        <!-- Lock screen overlay -->
+        <div id="lockOverlay" class="lock-overlay d-none">
+          <div class="lock-overlay-inner">
+            <i class="fas fa-lock fa-2x mb-2"></i>
+            <p class="mb-2">Screen Locked</p>
+            <button class="btn btn-sm btn-light" onclick="toggleLock()">
+              <i class="fas fa-lock-open me-1"></i>Unlock
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PLAYER SETTINGS OVERLAY ── -->
+      <div class="player-settings-drawer" id="playerSettingsDrawer">
+        <div class="ps-header d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0"><i class="fas fa-cog me-2"></i>Player Settings</h6>
+          <button class="btn btn-sm btn-link text-muted p-0" onclick="toggleSettings()">✕</button>
+        </div>
+
+        <!-- Quality -->
+        <div class="ps-section mb-3">
+          <div class="ps-label">Quality</div>
+          <div class="d-flex gap-2 flex-wrap mt-2">
+            <button class="quality-btn active" data-quality="auto" onclick="setQuality(this)">Auto</button>
+            <button class="quality-btn" data-quality="1080" onclick="setQuality(this)">1080p HD</button>
+            <button class="quality-btn" data-quality="720" onclick="setQuality(this)">720p HD</button>
+            <button class="quality-btn" data-quality="480" onclick="setQuality(this)">480p</button>
+            <button class="quality-btn" data-quality="360" onclick="setQuality(this)">360p</button>
+          </div>
+        </div>
+
+        <!-- Playback Speed -->
+        <div class="ps-section mb-3">
+          <div class="ps-label">Playback Speed</div>
+          <div class="d-flex align-items-center gap-3 mt-2">
+            <button class="btn btn-sm speed-btn" onclick="adjustSpeed(-0.5)">
+              <i class="fas fa-minus"></i>
+            </button>
+            <span class="speed-display" id="speedDisplay">1.0×</span>
+            <button class="btn btn-sm speed-btn" onclick="adjustSpeed(0.5)">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Lock Screen -->
+        <div class="ps-section">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="ps-label">Lock Screen</div>
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleLock()">
+              <i class="fas fa-lock me-1" id="lockBtnIcon"></i>
+              <span id="lockBtnText">Lock</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CUSTOM TRANSPORT BAR ── -->
+      <div class="transport-bar d-flex align-items-center gap-2 mt-2 px-1">
+        <button class="transport-btn" onclick="seekRelative(-10)" title="Previous">
+          <i class="fas fa-backward-step"></i>
+        </button>
+        <button class="transport-btn" id="playPauseBtn" onclick="togglePlayPause()" title="Play/Pause">
+          <i class="fas fa-play" id="playIcon"></i>
+        </button>
+        <button class="transport-btn" onclick="seekRelative(10)" title="Next">
+          <i class="fas fa-forward-step"></i>
+        </button>
+
+        <!-- Progress -->
+        <div class="progress-wrapper flex-grow-1">
+          <input type="range" class="progress-range" id="progressRange" value="0" min="0" max="100" step="0.1"/>
+        </div>
+
+        <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+
+        <!-- Captions Toggle -->
+        <button class="transport-btn" id="ccBtn" onclick="toggleCC()" title="Captions">
+          <i class="fas fa-closed-captioning"></i>
+        </button>
+
+        <!-- Settings -->
+        <button class="transport-btn" onclick="toggleSettings()" title="Settings">
+          <i class="fas fa-gear"></i>
+        </button>
+
+        <!-- Fullscreen -->
+        <button class="transport-btn" onclick="toggleFullscreen()" title="Fullscreen">
+          <i class="fas fa-expand"></i>
+        </button>
+      </div>
+      </div>
+      </div>
+
+      <!-- ── VIDEO TITLE & DETAILS ── -->
+      <div class="video-details mt-3 px-1">
+        <h1 class="video-watch-title">{{ video.title }}</h1>
+
+        <!-- Engagement row -->
+        <div class="engagement-row d-flex align-items-center flex-wrap gap-2 mt-3">
+          <!-- Like -->
+          <button class="btn engage-btn" id="likeBtn"
+                  onclick="toggleLike('{{ video._id }}')"
+                  title="Like">
+            <i class="fas fa-thumbs-up me-1"></i>
+            <span id="likeCount">{{ video.get('likes', 0) }}</span>
+          </button>
+          <!-- Dislike -->
+          <button class="btn engage-btn" id="dislikeBtn"
+                  onclick="toggleDislike('{{ video._id }}')"
+                  title="Dislike">
+            <i class="fas fa-thumbs-down me-1"></i>
+            <span id="dislikeCount">{{ video.get('dislikes', 0) }}</span>
+          </button>
+
+          <!-- Share -->
+          <button class="btn engage-btn" data-bs-toggle="modal" data-bs-target="#shareModal" title="Share">
+            <i class="fas fa-share me-1"></i>Share
+          </button>
+
+          <!-- Save -->
+          <button class="btn engage-btn" data-bs-toggle="modal" data-bs-target="#saveModal" title="Save">
+            <i class="fas fa-bookmark me-1"></i>Save
+          </button>
+
+          <button class="btn engage-btn" type="button" data-feedback-open data-feedback-context="current-video"
+                  aria-label="Report a problem with this video" title="Report a problem">
+            <i class="fas fa-flag me-1" aria-hidden="true"></i>Report issue
+          </button>
+
+          <!-- Download -->
+          <a href="{{ url_for('user.download_video', video_id=video._id) }}"
+             class="btn engage-btn" title="Download">
+            <i class="fas fa-download me-1"></i>Download
+          </a>
+        </div>
+
+        <!-- Creator profile -->
+        <div class="channel-bar d-flex align-items-center flex-wrap gap-3 mt-4 p-3">
+          {% if creator %}
+          <a href="{{ url_for('user.creator_profile', persona_id=creator._id) }}"
+             class="text-decoration-none" aria-label="View videos by {{ creator.get('name', 'Creator') }}">
+            {% if creator.get('avatar_data') %}
+            <img class="channel-avatar creator-avatar" src="{{ creator.avatar_data }}" alt="{{ creator.get('name', 'Creator') }}"/>
+            {% else %}
+            <div class="channel-avatar">{{ creator.get('name', 'C')[0].upper() }}</div>
+            {% endif %}
+          </a>
+          {% else %}
+          <div class="channel-avatar">{{ video.get('channel_name', 'C')[0].upper() }}</div>
+          {% endif %}
+          <div class="flex-grow-1">
+            {% if creator %}
+            <a href="{{ url_for('user.creator_profile', persona_id=creator._id) }}" class="text-decoration-none">
+              <div class="channel-name fw-semibold">{{ creator.get('name', 'Creator') }}</div>
+            </a>
+            {% else %}
+            <div class="channel-name fw-semibold">{{ video.get('channel_name', 'Creator') }}</div>
+            {% endif %}
+            <div class="channel-subs text-muted small">{{ '{:,}'.format(video.get('views', 0)) }} views</div>
+          </div>
+          <div class="creator-profile-actions d-flex align-items-center gap-2">
+          {% if channel %}
+          <button class="btn btn-subscribe" id="subscribeBtn"
+                  onclick="toggleSubscribe('{{ channel._id }}')">
+            <span id="subBtnText">Subscribe</span>
+          </button>
+          {% endif %}
+          {% if creator %}
+          <button class="btn btn-outline-secondary" type="button"
+                  data-creator-name="{{ creator.get('name', 'Creator') }}"
+                  onclick="shareCreatorProfile('{{ url_for('user.creator_profile', persona_id=creator._id) }}', this.dataset.creatorName, 'creatorWatchStatus')"
+                  title="Share creator profile" aria-label="Share {{ creator.get('name', 'Creator') }}'s profile">
+            <i class="fas fa-share-nodes me-1"></i>Share
+          </button>
+          {% if not creator_is_self %}
+          <button class="btn btn-outline-secondary creator-follow-btn {% if creator_is_subscribed %}following{% endif %}"
+                  type="button" id="creatorWatchFollowButton"
+                  data-creator-name="{{ creator.get('name', 'Creator') }}"
+                  aria-label="{{ 'Unsubscribe from' if creator_is_subscribed else 'Subscribe to' }} {{ creator.get('name', 'Creator') }}"
+                  aria-pressed="{{ 'true' if creator_is_subscribed else 'false' }}"
+                  title="{{ 'Remove from Subscriptions' if creator_is_subscribed else 'Add to Subscriptions' }}"
+                  onclick="toggleCreatorSubscription('{{ creator._id }}', 'creatorWatchFollowButton', 'creatorWatchStatus')">
+            <i class="fas fa-bell"></i>
+          </button>
+          {% endif %}
+          <span class="creator-action-status text-muted small" id="creatorWatchStatus" role="status" aria-live="polite"></span>
+          {% endif %}
+          </div>
+        </div>
+
+        <!-- Description -->
+        {% if video.get('description') %}
+        <div class="video-desc mt-3 p-3 rounded">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="text-muted small">{{ '{:,}'.format(video.get('views',0)) }} views</span>
+          </div>
+          <p class="mb-0 small">{{ video.description }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ── COMMENTS SECTION ── -->
+      <div class="comments-section mt-4 px-1">
+        <h5 class="mb-3">
+          <button class="comments-toggle" id="commentsToggle" type="button"
+                  aria-expanded="false" aria-controls="commentsContent">
+            <i class="fas fa-comments me-2 text-spectra" aria-hidden="true"></i>
+            <span class="comments-title-group">
+              <span>Comments</span>
+              <span class="comments-count text-muted small">{{ video.get('comment_count', 0) }}</span>
+            </span>
+            <i class="fas fa-chevron-down comments-toggle-chevron" aria-hidden="true"></i>
+          </button>
+        </h5>
+
+        <div class="comments-content" id="commentsContent" hidden>
+        <!-- Post comment -->
+        <div class="d-flex gap-3 mb-4">
+          <div class="comment-avatar">{{ session.get('persona_name','U')[0].upper() }}</div>
+          <div class="flex-grow-1">
+            <input type="text" class="form-control comment-input" id="newCommentInput"
+                   placeholder="Add a comment..."/>
+            <div class="d-flex justify-content-end gap-2 mt-2">
+              <button class="btn btn-sm btn-link text-muted" onclick="cancelComment()">Cancel</button>
+              <button class="btn btn-sm btn-spectra" onclick="postComment('{{ video._id }}')">Comment</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments list -->
+        <div id="commentsList">
+          {% for c in comments %}
+          <div class="comment-item" id="cmt_{{ c._id }}">
+            <div class="comment-avatar">{{ c.persona_name[0].upper() if c.persona_name else 'U' }}</div>
+            <div class="flex-grow-1">
+              <div class="comment-header">
+                <span class="comment-author fw-semibold">{{ c.persona_name }}</span>
+                <span class="comment-time text-muted small ms-2">{{ c.created_at_rel }}</span>
+              </div>
+              <p class="comment-text mb-1">{{ c.text | replace_timestamps | safe }}</p>
+              <div class="d-flex gap-3 align-items-center">
+                <button class="btn btn-sm comment-action" onclick="likeComment('{{ c._id }}', this)">
+                  <i class="fas fa-thumbs-up"></i>
+                  <span>{{ c.get('likes',0) }}</span>
+                </button>
+                <button class="btn btn-sm comment-action" onclick="toggleReply('{{ c._id }}')">
+                  Reply
+                </button>
+              </div>
+              <!-- Reply input -->
+              <div class="reply-input-area d-none mt-2" id="replyArea_{{ c._id }}">
+                <div class="d-flex gap-2">
+                  <input type="text" class="form-control comment-input form-control-sm"
+                         id="replyInput_{{ c._id }}" placeholder="Add a reply..."/>
+                  <button class="btn btn-sm btn-spectra" onclick="postReply('{{ video._id }}','{{ c._id }}')">
+                    Reply
+                  </button>
+                </div>
+              </div>
+              <!-- Nested replies -->
+              {% if c.replies %}
+              <div class="replies-container mt-2" id="replies_{{ c._id }}">
+                {% for r in c.replies %}
+                <div class="reply-item d-flex gap-2 mt-2">
+                  <div class="reply-avatar">{{ r.persona_name[0].upper() if r.persona_name else 'U' }}</div>
+                  <div>
+                    <span class="fw-semibold small">{{ r.persona_name }}</span>
+                    <span class="text-muted small ms-2">{{ r.created_at_rel }}</span>
+                    <p class="mb-0 small">{{ r.text }}</p>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        </div>
+      </div>
+
+    </div><!-- /left col -->
+
+    <!-- ═══ RIGHT COLUMN: Up-Next Sidebar ════════════════════════════════ -->
+    <div class="col-12 col-lg-4 mt-4 mt-lg-0 watch-up-next">
+      <h6 class="text-muted mb-3 px-1"><i class="fas fa-play-circle me-2 text-spectra"></i>Up Next</h6>
+      <div class="recommendations" id="recList">
+        {% for r in recs %}
+        <a href="{{ url_for('user.watch', v=r['_id']) }}" class="rec-card-link">
+          <div class="rec-card d-flex gap-3">
+            <div class="rec-thumb-wrapper">
+              {% if r.get('thumbnail') %}
+              <img src="{{ url_for('user.video_media', video_id=r['_id'], asset='thumbnails/' + r['thumbnail']) }}"
+                   class="rec-thumb" alt="{{ r['title'] }}" loading="lazy"/>
+              {% else %}
+              <div class="rec-thumb-placeholder"><i class="fas fa-play"></i></div>
+              {% endif %}
+            </div>
+            <div class="rec-info">
+              <p class="rec-title">{{ r['title'] }}</p>
+              <p class="rec-meta text-muted small">
+                {{ r.get('creator_name', 'Creator') }}<br/>
+                {{ '{:,}'.format(r.get('views', 0)) }} views · {{ r.get('created_at_rel','') }}
+              </p>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+        {% if not recs %}
+        <div class="text-muted small text-center py-4">No recommendations available</div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ SHARE MODAL ═══════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content spectra-modal">
+      <div class="modal-header border-0">
+        <h6 class="modal-title"><i class="fas fa-share me-2 text-spectra"></i>Share Video</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group mb-3">
+          <input type="text" class="form-control auth-input" id="shareUrl" readonly
+                 value="{{ request.url }}"/>
+          <button class="btn btn-spectra" onclick="copyShareUrl()">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="startAtCheck"/>
+          <label class="form-check-label text-muted small" for="startAtCheck">
+            Start at current time (<span id="startAtTime">0:00</span>)
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SAVE MODAL ════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="saveModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content spectra-modal">
+      <div class="modal-header border-0">
+        <h6 class="modal-title"><i class="fas fa-bookmark me-2 text-spectra"></i>Save to</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <button class="btn btn-outline-secondary w-100 mb-2 text-start" onclick="addWatchLater('{{ video._id }}')">
+          <i class="fas fa-bookmark me-2 text-spectra"></i>Saved Videos
+        </button>
+        {% for pl in playlists %}
+        <button class="btn btn-outline-secondary w-100 mb-2 text-start"
+                onclick="saveToPlaylist('{{ pl._id }}','{{ video._id }}')">
+          <i class="fas fa-list me-2 text-spectra"></i>{{ pl.name }}
+        </button>
+        {% endfor %}
+        <hr class="border-secondary"/>
+        <div class="d-flex gap-2">
+          <input type="text" class="form-control auth-input" id="newPlaylistName"
+                 placeholder="New playlist name..."/>
+          <button class="btn btn-spectra" onclick="createAndSave('{{ video._id }}')">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="watchLimitModal" tabindex="-1" aria-labelledby="watchLimitTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content spectra-modal">
+      <div class="modal-header border-0">
+        <h2 class="modal-title h5" id="watchLimitTitle"><i class="fas fa-clock me-2 text-spectra"></i>Daily watch limit reached</h2>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Your selected viewing time for today has been reached. Take a break or choose how to continue.</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary me-auto" id="closeWatchLimit">Close</button>
+        <button type="button" class="btn btn-outline-spectra" id="extendWatchLimit">Extend 5 mins</button>
+        <button type="button" class="btn btn-spectra" id="ignoreWatchLimit">Ignore time today</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+<script>
+  const VIDEO_ID = "{{ video._id }}";
+  const VIDEO_RESUME_TIME = {{ resume_time|tojson }};
+  const VIDEO_TRACKING_ENABLED = true;
+  const VIDEO_WATCH_TIME_ENABLED = true;
+  const VIEWER_PROFILE_ID = {{ session.get('persona_id', '') | tojson }};
+  const MP4_SRC = "{% if video.get('original_filename') %}{{ url_for('user.video_media', video_id=video['_id'], asset='uploads/' + video['original_filename']) }}{% endif %}";
+</script>
+<script src="{{ url_for('static', filename='js/player.js', v='watch-limit-actions-1') }}"></script>
+{% endblock %}

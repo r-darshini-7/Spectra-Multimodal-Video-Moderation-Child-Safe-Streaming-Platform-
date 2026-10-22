@@ -1,0 +1,98 @@
+{% extends "user/layout.html" %}
+{% block title %}Playlists — Spectra.{% endblock %}
+{% block content %}
+<div class="feed-container py-4">
+
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <h4 class="mb-0"><i class="fas fa-list me-2 text-spectra"></i>Your Playlists</h4>
+    <button class="btn btn-spectra btn-sm" data-bs-toggle="modal" data-bs-target="#createPlaylistModal">
+      <i class="fas fa-plus me-1"></i>New Playlist
+    </button>
+  </div>
+
+  {% if playlists %}
+  <div class="row g-3">
+    {% for pl in playlists %}
+    <div class="col-sm-6 col-md-4 col-lg-3">
+      <a href="{{ url_for('user.playlist_detail', playlist_id=pl['_id']) }}" class="text-decoration-none">
+        <div class="playlist-card p-3 rounded">
+          <div class="playlist-thumb mb-2 d-flex align-items-center justify-content-center">
+            <i class="fas fa-list fa-2x text-spectra"></i>
+          </div>
+          <h6 class="mb-1">{{ pl.name }}</h6>
+          <p class="text-muted small mb-0">{{ pl.get('video_ids', [])|length }} video{{ 's' if pl.get('video_ids', [])|length != 1 }}</p>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <i class="fas fa-list fa-3x text-muted mb-3"></i>
+    <h5 class="text-muted">No playlists yet</h5>
+    <p class="text-muted small">Create a playlist to organise your favourite videos.</p>
+    <button class="btn btn-spectra mt-2" data-bs-toggle="modal" data-bs-target="#createPlaylistModal">
+      <i class="fas fa-plus me-2"></i>Create Your First Playlist
+    </button>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Create Playlist Modal -->
+<div class="modal fade" id="createPlaylistModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content spectra-modal">
+      <div class="modal-header border-0">
+        <h6 class="modal-title"><i class="fas fa-plus me-2 text-spectra"></i>New Playlist</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="plAlert" class="alert d-none py-2 mb-3 small"></div>
+        <input type="text" class="form-control auth-input mb-3" id="newPlName"
+               placeholder="Playlist name..." maxlength="60"/>
+        <button class="btn btn-spectra w-100" onclick="createPlaylistAndReload()">
+          <i class="fas fa-check me-1"></i>Create
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function createPlaylistAndReload() {
+  const name = document.getElementById('newPlName').value.trim();
+  const alertEl = document.getElementById('plAlert');
+  if (!name) {
+    alertEl.className = 'alert alert-warning py-2 mb-3 small';
+    alertEl.textContent = 'Please enter a name.';
+    alertEl.classList.remove('d-none');
+    return;
+  }
+  try {
+    const res = await fetch('/api/playlist/create', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name}),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alertEl.className = 'alert alert-success py-2 mb-3 small';
+      alertEl.textContent = 'Playlist created!';
+      alertEl.classList.remove('d-none');
+      setTimeout(() => location.reload(), 800);
+    } else {
+      alertEl.className = 'alert alert-danger py-2 mb-3 small';
+      alertEl.textContent = data.error || 'Failed.';
+      alertEl.classList.remove('d-none');
+    }
+  } catch {
+    alertEl.className = 'alert alert-danger py-2 mb-3 small';
+    alertEl.textContent = 'Network error.';
+    alertEl.classList.remove('d-none');
+  }
+}
+</script>
+{% endblock %}

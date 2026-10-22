@@ -1,0 +1,39 @@
+{% extends "user/layout.html" %}
+{% block title %}Watch History — Spectra.{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css', v='history-gallery-1') }}"/>
+{% endblock %}
+{% block content %}
+<div class="feed-container py-4">
+  <h4 class="mb-4"><i class="fas fa-history me-2 text-spectra"></i>Watch History</h4>
+  {% if history_groups %}
+  <div class="settings-history-list">
+    {% for group in history_groups %}
+    <section class="settings-history-day">
+      <h3>{{ group.label }}</h3>
+      <div class="settings-history-grid">
+        {% for item in group["items"] %}
+        {% set v = item.video %}
+        <a href="{{ url_for('user.watch', v=v['_id']) }}" class="settings-history-tile" title="{{ v.get('title', 'Video') }}">
+          <span class="history-thumb">
+            {% if v.get('thumbnail') %}
+            <img src="{{ url_for('user.video_media', video_id=v['_id'], asset='thumbnails/' + v['thumbnail']) }}" alt="{{ v.get('title', 'Video') }}" loading="lazy"/>
+            {% else %}<i class="fas fa-play-circle"></i>{% endif %}
+          </span>
+          <span class="history-tile-title">{{ v.get('title', 'Video') }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+    <p class="text-muted">
+      Your watch history will appear here.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

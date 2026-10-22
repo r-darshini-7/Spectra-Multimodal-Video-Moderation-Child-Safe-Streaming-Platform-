@@ -1,0 +1,135 @@
+{% extends "admin/layout.html" %}
+{% block title %}Settings — Spectra. Studio{% endblock %}
+{% block page_title %}<i class="fas fa-sliders-h mr-2 text-spectra"></i>Model Calibration{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Settings</li>{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="card card-dark card-spectra">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-microchip mr-2"></i>AI Model Sensitivity Thresholds</h3>
+      </div>
+      <div class="card-body">
+        <div id="settingsAlert" class="alert d-none mb-3"></div>
+
+        <!-- YOLO Confidence -->
+        <div class="form-group">
+          <label class="font-weight-bold">
+            <i class="fas fa-eye mr-2 text-spectra"></i>
+            YOLOv11 Confidence Cutoff
+          </label>
+          <p class="text-muted small mb-2">
+            Minimum confidence score (0.1–0.99) for a YOLO detection to trigger a visual violation.
+            Lower = more sensitive.
+          </p>
+          <div class="d-flex align-items-center gap-3">
+            <input type="range" class="custom-range flex-grow-1" id="yoloSlider"
+                   min="0.10" max="0.99" step="0.01"
+                   value="{{ config.get('yolo_confidence', 0.45) }}"
+                   oninput="updateSliderLabel('yolo')"/>
+            <span class="badge badge-spectra font-weight-bold" id="yoloLabel"
+                  style="min-width:50px;text-align:center;">
+              {{ config.get('yolo_confidence', 0.45) }}
+            </span>
+          </div>
+        </div>
+
+        <hr class="border-secondary"/>
+
+        <!-- BERT Threshold -->
+        <div class="form-group">
+          <label class="font-weight-bold">
+            <i class="fas fa-comment mr-2 text-spectra"></i>
+            BERT Toxicity Score Threshold
+          </label>
+          <p class="text-muted small mb-2">
+            Minimum toxicity score (0.1–0.99) for a transcript segment to be flagged.
+            Lower = stricter filtering.
+          </p>
+          <div class="d-flex align-items-center gap-3">
+            <input type="range" class="custom-range flex-grow-1" id="bertSlider"
+                   min="0.10" max="0.99" step="0.01"
+                   value="{{ config.get('bert_toxicity_threshold', 0.60) }}"
+                   oninput="updateSliderLabel('bert')"/>
+            <span class="badge badge-spectra font-weight-bold" id="bertLabel"
+                  style="min-width:50px;text-align:center;">
+              {{ config.get('bert_toxicity_threshold', 0.60) }}
+            </span>
+          </div>
+        </div>
+
+        <hr class="border-secondary"/>
+
+        <!-- RAG Distance -->
+        <div class="form-group">
+          <label class="font-weight-bold">
+            <i class="fas fa-book-open mr-2 text-spectra"></i>
+            RAG Policy Semantic Distance Threshold
+          </label>
+          <p class="text-muted small mb-2">
+            Maximum cosine distance (0.1–1.0) for a policy clause to be considered "violated".
+            Higher = broader policy matching.
+          </p>
+          <div class="d-flex align-items-center gap-3">
+            <input type="range" class="custom-range flex-grow-1" id="ragSlider"
+                   min="0.10" max="1.00" step="0.01"
+                   value="{{ config.get('rag_distance_threshold', 0.75) }}"
+                   oninput="updateSliderLabel('rag')"/>
+            <span class="badge badge-spectra font-weight-bold" id="ragLabel"
+                  style="min-width:50px;text-align:center;">
+              {{ config.get('rag_distance_threshold', 0.75) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <button class="btn btn-spectra btn-lg" onclick="saveSettings()">
+            <i class="fas fa-save mr-2"></i>Save Configuration
+          </button>
+          <small class="text-muted ml-3">Changes persist to MongoDB system_config collection.</small>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function updateSliderLabel(type) {
+  const map = {yolo:'yoloSlider', bert:'bertSlider', rag:'ragSlider'};
+  const labelMap = {yolo:'yoloLabel', bert:'bertLabel', rag:'ragLabel'};
+  document.getElementById(labelMap[type]).textContent =
+    parseFloat(document.getElementById(map[type]).value).toFixed(2);
+}
+
+async function saveSettings() {
+  const alert = document.getElementById('settingsAlert');
+  const payload = {
+    yolo_confidence: parseFloat(document.getElementById('yoloSlider').value),
+    bert_toxicity_threshold: parseFloat(document.getElementById('bertSlider').value),
+    rag_distance_threshold: parseFloat(document.getElementById('ragSlider').value),
+  };
+  try {
+    const res = await fetch('/admin/settings/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    alert.className = 'alert ' + (data.ok ? 'alert-success' : 'alert-danger');
+    alert.textContent = data.ok ? 'Settings saved successfully.' : (data.error || 'Failed.');
+    alert.classList.remove('d-none');
+    setTimeout(() => alert.classList.add('d-none'), 3000);
+  } catch(e) {
+    alert.className = 'alert alert-danger';
+    alert.textContent = 'Network error.';
+    alert.classList.remove('d-none');
+  }
+}
+</script>
+{% endblock %}

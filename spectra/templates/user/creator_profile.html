@@ -1,0 +1,76 @@
+{% extends "user/layout.html" %}
+{% block title %}{{ creator.get('name', 'Creator') }} — Spectra.{% endblock %}
+
+{% block content %}
+<div class="feed-container py-4">
+  <div class="channel-page-banner mb-4 p-4 rounded d-flex align-items-center gap-4 flex-wrap">
+    {% if creator.get('avatar_data') %}
+    <img class="creator-page-photo" src="{{ creator.avatar_data }}" alt="{{ creator.get('name', 'Creator') }}"/>
+    {% else %}
+    <div class="channel-page-avatar">{{ creator.get('name', 'C')[0].upper() }}</div>
+    {% endif %}
+    <div class="flex-grow-1">
+      <h1 class="h4 mb-1 fw-bold">{{ creator.get('name', 'Creator') }}</h1>
+      <p class="text-muted mb-0">{{ age_silo|capitalize }} videos · {{ videos|length }} published</p>
+    </div>
+    <div class="creator-profile-actions ms-auto d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary" type="button"
+              data-creator-name="{{ creator.get('name', 'Creator') }}"
+              onclick="shareCreatorProfile(window.location.href, this.dataset.creatorName, 'creatorProfileStatus')"
+              title="Share profile" aria-label="Share {{ creator.get('name', 'Creator') }}'s profile">
+        <i class="fas fa-share-nodes me-1"></i>Share
+      </button>
+      {% if not is_own_profile %}
+      <button class="btn btn-outline-secondary creator-follow-btn {% if is_subscribed %}following{% endif %}"
+              type="button" id="creatorFollowButton"
+              aria-label="{{ 'Unsubscribe from' if is_subscribed else 'Subscribe to' }} {{ creator.get('name', 'Creator') }}"
+              data-creator-name="{{ creator.get('name', 'Creator') }}"
+              aria-pressed="{{ 'true' if is_subscribed else 'false' }}"
+              title="{{ 'Remove from Subscriptions' if is_subscribed else 'Add to Subscriptions' }}"
+              onclick="toggleCreatorSubscription('{{ creator._id }}', 'creatorFollowButton', 'creatorProfileStatus')">
+        <i class="fas fa-bell"></i>
+      </button>
+      {% endif %}
+      <span class="creator-action-status text-muted small" id="creatorProfileStatus" role="status" aria-live="polite"></span>
+    </div>
+  </div>
+
+  {% if videos %}
+  <div class="video-grid">
+    {% for video in videos %}
+    <a href="{{ url_for('user.watch', v=video['_id']) }}" class="video-card-link">
+      <div class="video-card">
+        <div class="video-thumbnail-wrapper">
+          {% if video.get('thumbnail') %}
+          <img src="{{ url_for('user.video_media', video_id=video['_id'], asset='thumbnails/' + video['thumbnail']) }}"
+               class="video-thumbnail" loading="lazy" alt="{{ video.title }}"/>
+          {% else %}
+          <div class="video-thumbnail-placeholder"><i class="fas fa-play-circle"></i></div>
+          {% endif %}
+          <div class="video-duration">{{ video.get('duration_str', '0:00') }}</div>
+        </div>
+        <div class="video-info">
+          {% if creator.get('avatar_data') %}
+          <img class="video-channel-avatar creator-video-avatar" src="{{ creator.avatar_data }}" alt=""/>
+          {% else %}
+          <div class="video-channel-avatar">{{ creator.get('name', 'C')[0].upper() }}</div>
+          {% endif %}
+          <div class="video-meta">
+            <h2 class="video-title">{{ video.title }}</h2>
+            <p class="video-stats">{{ '{:,}'.format(video.get('views', 0)) }} views · {{ video.get('created_at_rel', '') }}</p>
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <i class="fas fa-video-slash fa-3x text-muted mb-3"></i>
+    <p class="text-muted">This creator has no published videos for your age group.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}{% endblock %}

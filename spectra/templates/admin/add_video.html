@@ -1,0 +1,227 @@
+{% extends "admin/layout.html" %}
+{% block title %}Add Video — Spectra. Studio{% endblock %}
+{% block page_title %}<i class="fas fa-upload mr-2 text-spectra"></i>Pre-Flight Studio{% endblock %}
+{% block upload_page_title %}<i class="fas fa-upload mr-2 text-spectra"></i>Pre-Flight Studio{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Add Video</li>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .drop-zone { border: 2px dashed #4b6cb7; border-radius: 12px; padding: 2.5rem; text-align: center; cursor: pointer; transition: all 0.3s; }
+  .drop-zone:hover, .drop-zone.dragover { border-color: #7c5cd8; background: rgba(124,92,216,0.08); }
+  .gauge-wrapper { position: relative; width: 180px; margin: auto; }
+  .violation-item { border-left: 3px solid #dc3545; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; background: rgba(220,53,69,0.08); border-radius: 0 6px 6px 0; }
+  .citation-item { border-left: 3px solid #7c5cd8; padding: 0.4rem 0.75rem; margin-bottom: 0.4rem; background: rgba(124,92,216,0.08); border-radius: 0 6px 6px 0; font-size: 0.8rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+
+  <!-- ── LEFT: Upload Form ──────────────────────────────────────────────── -->
+  <div class="col-lg-5 mb-4">
+    <div class="card card-dark card-spectra">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-film mr-2"></i>Video Details</h3>
+      </div>
+      <div class="card-body">
+
+        <div id="uploadAlert" class="alert d-none mb-3"></div>
+
+        <div class="form-group">
+          <label class="text-muted small">Video Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control admin-input" id="vTitle" placeholder="Enter video title"/>
+        </div>
+
+        <div class="form-group">
+          <label class="text-muted small">Description</label>
+          <textarea class="form-control admin-input" id="vDescription" rows="3" placeholder="Video description..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label class="text-muted small">Target Age Group <span class="text-danger">*</span></label>
+            <select class="form-control admin-input" id="vAgeSilo" required>
+              <option value="preschool" {% if default_age_silo|default('kids') == 'preschool' %}selected{% endif %}>Preschool (0–4 years)</option>
+              <option value="kids" {% if default_age_silo|default('kids') == 'kids' %}selected{% endif %}>Kids (5–8 years)</option>
+              <option value="tweens" {% if default_age_silo|default('kids') == 'tweens' %}selected{% endif %}>Tweens (9–12 years)</option>
+              <option value="teens" {% if default_age_silo|default('kids') == 'teens' %}selected{% endif %}>Teens (13–17 years)</option>
+              <option value="unrestricted" {% if default_age_silo|default('kids') == 'unrestricted' %}selected{% endif %}>Unrestricted (18+ years)</option>
+            </select>
+          </div>
+          <div class="form-group col-md-6">
+            <label class="text-muted small">Category <span class="text-danger">*</span></label>
+            <select class="form-control admin-input" id="vCategory" required
+                    data-category-options='{{ category_options|tojson }}'
+                    data-age-select="vAgeSilo">
+              {% for category in category_options.kids %}
+              <option value="{{ category }}">{{ category }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label class="text-muted small" for="vAgeSilo2">Additional Target Age Group</label>
+            <select class="form-control admin-input" id="vAgeSilo2" data-optional-age-group>
+              <option value="">None</option>
+              <option value="preschool">Preschool (0–4 years)</option>
+              <option value="kids">Kids (5–8 years)</option>
+              <option value="tweens">Tweens (9–12 years)</option>
+              <option value="teens">Teens (13–17 years)</option>
+              <option value="unrestricted">Unrestricted (18+ years)</option>
+            </select>
+          </div>
+          <div class="form-group col-md-6">
+            <label class="text-muted small" for="vCategory2">Category</label>
+            <select class="form-control admin-input" id="vCategory2"
+                    data-category-options='{{ category_options|tojson }}'
+                    data-age-select="vAgeSilo2" disabled>
+              <option value="">Select an age group first</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label class="text-muted small" for="vAgeSilo3">Additional Target Age Group</label>
+            <select class="form-control admin-input" id="vAgeSilo3" data-optional-age-group>
+              <option value="">None</option>
+              <option value="preschool">Preschool (0–4 years)</option>
+              <option value="kids">Kids (5–8 years)</option>
+              <option value="tweens">Tweens (9–12 years)</option>
+              <option value="teens">Teens (13–17 years)</option>
+              <option value="unrestricted">Unrestricted (18+ years)</option>
+            </select>
+          </div>
+          <div class="form-group col-md-6">
+            <label class="text-muted small" for="vCategory3">Category</label>
+            <select class="form-control admin-input" id="vCategory3"
+                    data-category-options='{{ category_options|tojson }}'
+                    data-age-select="vAgeSilo3" disabled>
+              <option value="">Select an age group first</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Drag & Drop zone -->
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('videoFileInput').click()">
+          <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-spectra"></i>
+          <p class="mb-1">Drag & drop your video here</p>
+          <small class="text-muted">MP4, MOV, AVI · Max 2 GB</small>
+          <div id="fileSelectedName" class="mt-2 text-spectra small d-none"></div>
+        </div>
+        <input type="file" id="videoFileInput" accept=".mp4,.mov,.avi" class="d-none"/>
+
+        <!-- Upload progress -->
+        <div id="uploadProgress" class="d-none mt-3">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted" id="uploadStatus">Uploading...</small>
+            <small id="uploadPct" class="text-spectra">0%</small>
+          </div>
+          <div class="progress" style="height:6px;">
+            <div class="progress-bar bg-spectra" id="uploadBar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-spectra flex-grow-1" id="btnUpload" onclick="uploadAndAnalyze()" disabled>
+            <i class="fas fa-rocket mr-2"></i>Upload & Run AI Analysis
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: AI Results ─────────────────────────────────────────────── -->
+  <div class="col-lg-7">
+
+    <!-- Gauge Row -->
+    <div class="card card-dark card-spectra mb-3" id="gaugeCard">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-tachometer-alt mr-2"></i>Content Scan Score
+          <span class="badge badge-secondary ml-2" id="scoreAgeGroup">Select an age group</span>
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-6">
+            <div class="gauge-wrapper">
+              <canvas id="safeGauge" width="180" height="110"></canvas>
+            </div>
+            <div class="mt-1">
+              <span class="text-success font-weight-bold" id="safePctLabel">—</span>
+              <div class="text-muted small">Safe score</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="gauge-wrapper">
+              <canvas id="unsafeGauge" width="180" height="110"></canvas>
+            </div>
+            <div class="mt-1">
+              <span class="text-danger font-weight-bold" id="unsafePctLabel">—</span>
+              <div class="text-muted small">Risk score</div>
+            </div>
+          </div>
+        </div>
+        <p id="scoreEvidenceNote" class="text-muted small text-center mb-0">
+          Automated age-group checks evaluate each selected target age group under its configured category rules.
+        </p>
+        <!-- Verdict Banner -->
+        <div id="verdictBanner" class="d-none mt-3 text-center p-3 rounded">
+          <i id="verdictIcon" class="fa-2x mb-2"></i>
+          <h5 id="verdictText" class="mb-0"></h5>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-dark card-spectra mb-3 d-none" id="ageGroupResultsCard">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-layer-group mr-2"></i>Age-Group Results</h3>
+      </div>
+      <div class="card-body">
+        <div id="ageGroupResults"></div>
+        <p id="permittedAgeGroups" class="small mb-0 mt-3"></p>
+      </div>
+    </div>
+
+    <!-- Violations & Suggestions -->
+    <div class="card card-dark card-spectra mb-3" id="violationsCard">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title"><i class="fas fa-exclamation-triangle mr-2 text-warning"></i>Violations & Remediation</h3>
+        <button class="btn btn-sm btn-warning" id="btnRemediate" onclick="remediateVideo()" style="display:none;">
+          <i class="fas fa-magic mr-1"></i>Apply All AI Fixes
+        </button>
+      </div>
+      <div class="card-body" id="violationsList">
+        <p class="text-muted text-center small">Run analysis to see violation details.</p>
+      </div>
+    </div>
+
+    <!-- Policy Citations -->
+    <div class="card card-dark card-spectra mb-3 d-none" id="citationsCard">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-gavel mr-2 text-spectra"></i>Policy Citations</h3>
+      </div>
+      <div class="card-body" id="citationsList"></div>
+    </div>
+
+    <!-- Publish Gate -->
+    <div class="text-center mt-2">
+      <div id="publishAlert" class="alert d-none mb-3"></div>
+      <button class="btn btn-success btn-lg" id="btnPublish" onclick="publishVideo()" disabled>
+        <i class="fas fa-rocket mr-2"></i>Publish Video
+      </button>
+      <p class="text-muted small mt-2" id="publishGateMsg">
+        Complete AI analysis to unlock publishing.
+      </p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/add_video.js', v='multi-age-analysis-7') }}"></script>
+{% endblock %}

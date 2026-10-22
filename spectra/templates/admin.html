@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta name="admin-user-id" content="{{ session.get('admin_user_id', '') }}">
+    <title>Spectra Admin Operations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/spectra.css', v='sidebar-hover-1') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css', v='admin-alert-center-1') }}">
+  </head>
+  <body class="user-layout admin-console-body">
+    <nav class="spectra-navbar navbar fixed-top admin-operations-navbar" aria-label="Admin toolbar">
+      <div class="admin-navbar-main">
+        <div class="admin-navbar-brand">
+          <button class="navbar-toggle-btn" id="sidebarToggle" type="button" title="Toggle navigation" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebarDrawer">
+            <i class="fas fa-bars"></i>
+          </button>
+          <a href="{{ url_for('admin_ops.console') }}" class="navbar-brand-spectra">
+            <span class="brand-text admin-brand-name">Spectra.</span>
+            <span class="admin-brand-suffix">Admin</span>
+          </a>
+        </div>
+
+        <form class="admin-global-search search-wrapper" id="adminSearchForm" role="search">
+          <button class="voice-search-btn" id="voiceSearchBtn" type="button" title="Voice search" aria-label="Voice search">
+            <i class="fas fa-microphone"></i>
+          </button>
+          <input class="search-input" id="searchInput" type="search" placeholder="Search operations…" autocomplete="off" aria-label="Search admin console">
+          <button class="search-btn" id="searchBtn" type="submit" title="Search" aria-label="Search">
+            <i class="fas fa-search"></i>
+          </button>
+        </form>
+
+        <div class="admin-navbar-actions">
+          <button class="navbar-icon-btn admin-mobile-search-toggle" id="adminMobileSearchToggle" type="button" title="Search" aria-label="Open search">
+            <i class="fas fa-search"></i>
+          </button>
+          <button class="navbar-icon-btn" id="themeToggleBtn" type="button" title="Toggle light/dark theme" aria-label="Switch to dark theme" aria-pressed="false">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <div class="admin-notification-center">
+            <button class="navbar-icon-btn position-relative" id="adminNotifications" type="button"
+                    title="Admin alerts" aria-label="Admin alerts" aria-expanded="false"
+                    aria-controls="adminNotificationDropdown">
+              <i class="fas fa-bell" aria-hidden="true"></i>
+              <span class="admin-notification-badge d-none" id="notifBadge" aria-live="polite"></span>
+            </button>
+            <section class="admin-notification-dropdown hidden" id="adminNotificationDropdown"
+                     aria-label="Admin Alerts">
+              <header class="admin-notification-header">
+                <div>
+                  <h2>Admin Alerts</h2>
+                  <span class="admin-notification-unread" id="adminNotificationUnread">0 unread</span>
+                </div>
+                <button class="admin-notification-mark-all" id="markAllAdminNotificationsRead"
+                        type="button" disabled>Mark all as read</button>
+              </header>
+              <nav class="admin-notification-filters" aria-label="Filter admin alerts">
+                <button class="active" type="button" data-notification-filter="all" aria-pressed="true">All</button>
+                <button type="button" data-notification-filter="moderation" aria-pressed="false">Safety Violations</button>
+                <button type="button" data-notification-filter="pipeline" aria-pressed="false">Pipeline Errors</button>
+                <button type="button" data-notification-filter="report" aria-pressed="false">User Reports</button>
+              </nav>
+              <div class="admin-notification-list" id="adminNotificationList"
+                   role="list" aria-live="polite" aria-busy="false">
+                <p class="admin-notification-empty">Loading admin alerts…</p>
+              </div>
+              <p class="admin-notification-empty hidden" id="adminNotificationEmpty">
+                All systems running smoothly — no pending alerts
+              </p>
+            </section>
+          </div>
+          <div class="admin-profile">
+            <button class="navbar-avatar-btn" id="adminProfileToggle" type="button" aria-expanded="false" aria-controls="adminProfileMenu" aria-label="Super-admin account menu">
+              <span class="nav-avatar">{{ (admin_identity or 'Admin')[0]|upper }}</span>
+            </button>
+            <div class="admin-profile-menu hidden" id="adminProfileMenu">
+              <div class="admin-profile-summary">
+                <strong>{{ admin_identity }}</strong>
+                <span><i class="status-dot"></i> Super-admin session</span>
+              </div>
+              <form method="post" action="{{ url_for('admin_ops.viewer_mode') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="admin-profile-link" type="submit"><i class="fas fa-tv"></i> Switch to viewer mode</button>
+              </form>
+              <button type="button" class="admin-profile-link" data-tab="users"><i class="fas fa-users"></i> User management</button>
+              <form method="post" action="{{ url_for('admin_ops.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="admin-profile-link sign-out-link" type="submit"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <form class="admin-mobile-search-bar" id="adminMobileSearchBar" role="search">
+        <button class="voice-search-btn" id="mobileVoiceSearchBtn" type="button" title="Voice search" aria-label="Voice search">
+          <i class="fas fa-microphone"></i>
+        </button>
+        <input class="search-input" id="mobileSearchInput" type="search" placeholder="Search operations…" aria-label="Search admin console">
+        <button class="search-btn" id="mobileSearchBtn" type="submit" title="Search" aria-label="Search">
+          <i class="fas fa-search"></i>
+        </button>
+      </form>
+    </nav>
+
+    <aside class="sidebar-drawer admin-sidebar-drawer" id="sidebarDrawer" aria-label="Admin navigation">
+      <div class="sidebar-inner">
+        <div class="sidebar-section-label">Operations</div>
+        <nav class="sidebar-section admin-sidebar-section" aria-label="Admin modules">
+          <button class="sidebar-item admin-tab-link active" type="button" data-tab="dashboard"><i class="fa-solid fa-gauge"></i><span>Dashboard</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="analytics"><i class="fa-solid fa-chart-line"></i><span>Admin Analytics</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="feedback"><i class="fa-solid fa-message"></i><span>Feedbacks &amp; Reports</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="policies"><i class="fa-solid fa-file-lines"></i><span>Policy Rules</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="users"><i class="fa-solid fa-users"></i><span>User Management</span></button>
+        </nav>
+        <div class="sidebar-divider"></div>
+        <div class="admin-sidebar-session"><span class="status-dot"></span><span>Admin session protected</span></div>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <main class="main-content admin-main-content">
+        <div class="toast-region" id="toastRegion" role="status" aria-live="polite"></div>
+        <section class="tab-panel active" id="dashboard-panel" aria-labelledby="dashboard-title">
+          <div class="page-header-row"><div><div class="eyebrow">Overview</div><h1 id="dashboard-title">Operations dashboard</h1></div><span class="live-label"><span class="status-dot"></span>Live metrics · updates every 5 seconds</span></div>
+          <div class="kpi-grid">
+            <article class="metric-card accent-blue"><div class="metric-meta">Active users</div><div class="metric-value" id="kpiActiveUsers" aria-live="polite">—</div><div class="metric-trend">All registered users · family profiles included</div></article>
+            <article class="metric-card accent-green"><div class="metric-meta">Active creators</div><div class="metric-value" id="kpiActiveCreators" aria-live="polite">—</div><div class="metric-trend">Creators with active uploads</div></article>
+            <article class="metric-card accent-purple"><div class="metric-meta">Published videos</div><div class="metric-value" id="kpiPublishedVideos" aria-live="polite">—</div><div class="metric-trend">Live across all silos</div></article>
+            <article class="metric-card accent-orange"><div class="metric-meta">Auto-remediated streams</div><div class="metric-value" id="kpiRemediated" aria-live="polite">—</div><div class="metric-trend">Remediation applied</div></article>
+          </div>
+          <div class="content-grid dashboard-content">
+            <article class="panel-card">
+              <div class="panel-header"><h2>Recently published videos</h2></div>
+              <div class="table-wrap recent-submissions-wrap"><table class="recent-submissions-table"><thead><tr><th>Title</th><th>Creator</th><th>Target silo</th><th>Status</th><th>Action</th></tr></thead><tbody id="recentVideos"><tr><td colspan="5" class="empty-state">Loading submissions…</td></tbody></table></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="analytics-panel" aria-labelledby="analytics-title">
+          <div class="page-header-row admin-analytics-header">
+            <div><div class="eyebrow">Platform insights</div><h1 id="analytics-title">Admin Analytics</h1></div>
+            <label class="analytics-range-control" for="analyticsRange">Time period
+              <select id="analyticsRange" aria-label="Analytics time period">
+                <option value="today">Today</option>
+                <option value="7d" selected>Past 7 Days</option>
+                <option value="1m">Past 1 Month</option>
+                <option value="all">All Time</option>
+              </select>
+            </label>
+          </div>
+          <section class="platform-viewing-section" aria-labelledby="platformViewingTitle">
+            <div class="platform-viewing-heading">
+              <div>
+                <div class="eyebrow">Platform-wide viewing</div>
+                <h2 id="platformViewingTitle">All-user viewing behavior &amp; engagement</h2>
+                <p>Aggregated profile-level activity from recorded watch history and interactions.</p>
+              </div>
+              <div class="platform-viewing-filters">
+                <label for="viewingSilo">Profile silo
+                  <select id="viewingSilo" aria-label="Filter platform viewing analytics by profile silo">
+                    <option value="all">All Silos</option>
+                    <option value="preschool">Preschool</option>
+                    <option value="kids">Kids 6–10</option>
+                    <option value="tweens">Pre-Teens</option>
+                    <option value="teens">Teens</option>
+                    <option value="unrestricted">Unrestricted</option>
+                  </select>
+                </label>
+                <span class="platform-data-note">Times shown in UTC</span>
+              </div>
+            </div>
+            <p class="platform-viewing-error hidden" id="platformViewingError" role="alert"></p>
+            <div class="platform-viewing-kpis">
+              <article class="platform-kpi-card">
+                <span>Total platform screen time</span>
+                <strong id="globalWatchTime">—</strong>
+                <small>Total watch time in period</small>
+              </article>
+              <article class="platform-kpi-card">
+                <span>Average daily screen time</span>
+                <strong id="globalDailyAverage">—</strong>
+                <small>Minutes per active profile-day</small>
+              </article>
+              <article class="platform-kpi-card">
+                <span>Video completion rate</span>
+                <strong id="globalCompletionRate">—</strong>
+                <small>Estimated sessions watched to 90%+</small>
+              </article>
+              <article class="platform-kpi-card">
+                <span>Most active age silo</span>
+                <strong id="globalActiveSilo">—</strong>
+                <small>Share of recorded watch time</small>
+              </article>
+            </div>
+            <div class="platform-viewing-grid">
+              <article class="platform-viewing-card">
+                <h3>Platform-wide watching hours</h3>
+                <p>Monthly buckets for All Time; daily buckets for shorter ranges.</p>
+                <div class="platform-viewing-chart"><canvas id="globalTimelineChart" aria-label="Platform watch hours over time"></canvas></div>
+                <p class="platform-chart-empty hidden" id="globalTimelineEmpty">No watch-time data for this period.</p>
+              </article>
+              <article class="platform-viewing-card">
+                <h3>Weekday vs. weekend consumption</h3>
+                <p>Total recorded viewing minutes by day group.</p>
+                <div class="platform-viewing-chart"><canvas id="globalWeekdayChart" aria-label="Weekday and weekend viewing minutes"></canvas></div>
+                <p class="platform-chart-empty hidden" id="globalWeekdayEmpty">No watch-time data for this period.</p>
+              </article>
+              <article class="platform-viewing-card">
+                <h3>Platform viewing time windows</h3>
+                <p>UTC: Morning 6–12, Afternoon 12–17, Evening 17–21, Night 21–06.</p>
+                <div class="platform-viewing-chart"><canvas id="globalDaypartChart" aria-label="Viewing time by time of day"></canvas></div>
+                <p class="platform-chart-empty hidden" id="globalDaypartEmpty">No watch-time data for this period.</p>
+              </article>
+              <article class="platform-viewing-card">
+                <h3>Most popular content focus</h3>
+                <p>Watch-time distribution by video category.</p>
+                <div class="platform-viewing-chart"><canvas id="globalCategoryChart" aria-label="Watch time by content category"></canvas></div>
+                <p class="platform-chart-empty hidden" id="globalCategoryEmpty">No categorized watch-time data for this period.</p>
+              </article>
+              <article class="platform-viewing-card">
+                <h3>All-user video interaction split</h3>
+                <p>Current account likes and profile saves; downloads are completed events within the selected period.</p>
+                <div class="platform-viewing-chart platform-viewing-chart-short"><canvas id="globalInteractionChart" aria-label="Likes, saves, and downloads across profiles"></canvas></div>
+                <p class="platform-chart-empty hidden" id="globalInteractionEmpty">No interaction data for this period.</p>
+              </article>
+              <article class="platform-viewing-card platform-diversity-card">
+                <h3>Exploration diversity index</h3>
+                <strong id="globalDiversityIndex">—</strong>
+                <p>Average distinct content categories watched per active profile.</p>
+              </article>
+              <article class="platform-viewing-card platform-wide-card">
+                <h3>Top replayed &amp; completed videos</h3>
+                <p>Completion percentage is estimated from the latest saved profile/video watch position.</p>
+                <div class="platform-table-wrap">
+                  <table class="platform-viewing-table">
+                    <thead><tr><th>Video title</th><th>Creator</th><th>Total plays</th><th>Replays</th><th>Avg. watched</th><th>Silo category</th></tr></thead>
+                    <tbody id="globalTopVideos"><tr><td colspan="6">Loading video analytics…</td></tr></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="platform-viewing-card platform-wide-card">
+                <h3>Top watched creators across platform</h3>
+                <p>Ranked by aggregate recorded watch time.</p>
+                <div class="platform-table-wrap">
+                  <table class="platform-viewing-table">
+                    <thead><tr><th>Rank</th><th>Creator</th><th>Watch time</th></tr></thead>
+                    <tbody id="globalTopCreators"><tr><td colspan="3">Loading creator analytics…</td></tr></tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+          </section>
+          <div class="admin-analytics-kpis">
+            <article class="metric-card accent-blue">
+              <div class="metric-meta">Total platform watch time</div>
+              <div class="metric-value" id="analyticsWatchTime" aria-live="polite">—</div>
+              <div class="metric-trend" id="analyticsWatchChange">Compared with previous period</div>
+            </article>
+            <article class="metric-card accent-green">
+              <div class="metric-meta">Total content ingested</div>
+              <div class="metric-value" id="analyticsIngested" aria-live="polite">—</div>
+              <div class="metric-trend">Across all child silos</div>
+            </article>
+            <article class="metric-card accent-purple">
+              <div class="metric-meta">Auto-remediation rate</div>
+              <div class="metric-value" id="analyticsRemediationRate" aria-live="polite">—</div>
+              <div class="metric-trend" id="analyticsRemediationDetail">Visual blurs &amp; audio bleeps applied</div>
+            </article>
+            <article class="metric-card accent-orange">
+              <div class="metric-meta">Viewer-report safety score</div>
+              <div class="metric-value" id="analyticsSafetyScore" aria-live="polite">—</div>
+              <div class="metric-trend" id="analyticsSafetyDetail">Based on viewer reports escalated for review</div>
+            </article>
+          </div>
+
+          <section class="admin-analytics-section" aria-labelledby="moderationSectionTitle">
+            <div class="admin-analytics-section-heading">
+              <div><div class="eyebrow">Content safety</div><h2 id="moderationSectionTitle">AI moderation &amp; pipeline intelligence</h2></div>
+              <p>Findings reflect recorded analyzer results. Whisper transcribes speech; BERT scores transcript toxicity.</p>
+            </div>
+            <div class="admin-analytics-grid">
+              <article class="panel-card admin-analytics-card">
+                <h3>Multimodal violations caught</h3>
+                <p class="analytics-card-caption">Stored detector findings and policy-review escalations</p>
+                <div class="admin-analytics-chart"><canvas id="adminViolationsChart" aria-label="Stacked horizontal bar chart of multimodal moderation findings"></canvas></div>
+                <p class="chart-empty-state hidden" id="adminViolationsEmpty">No moderation findings recorded for this period.</p>
+              </article>
+              <article class="panel-card admin-analytics-card">
+                <h3>Automated actions breakdown</h3>
+                <p class="analytics-card-caption">One primary outcome per video; review/rejection take priority, then visual blur before audio bleep</p>
+                <div class="admin-analytics-chart"><canvas id="adminActionsChart" aria-label="Donut chart of moderation actions"></canvas></div>
+                <p class="chart-empty-state hidden" id="adminActionsEmpty">No moderation outcomes recorded for this period.</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="admin-analytics-section" aria-labelledby="audienceSectionTitle">
+            <div class="admin-analytics-section-heading">
+              <div><div class="eyebrow">Audience engagement</div><h2 id="audienceSectionTitle">Audience &amp; age silo distribution</h2></div>
+            </div>
+            <div class="admin-analytics-grid">
+              <article class="panel-card admin-analytics-card">
+                <h3>Consumption by age silo</h3>
+                <p class="analytics-card-caption">Recorded watch time across all age-appropriate silos</p>
+                <div class="admin-analytics-chart"><canvas id="adminSilosChart" aria-label="Watch time by age silo"></canvas></div>
+                <p class="chart-empty-state hidden" id="adminSilosEmpty">No watch-time activity recorded for this period.</p>
+              </article>
+              <article class="panel-card admin-analytics-card">
+                <div class="admin-chart-title-row">
+                  <div><h3>Platform activity over time</h3><p class="analytics-card-caption" id="activityChartCaption">Daily watch time and uploads</p></div>
+                  <div class="analytics-chart-toggle" role="group" aria-label="Activity chart resolution">
+                    <button type="button" class="active" data-activity-view="daily" aria-pressed="true">Daily</button>
+                    <button type="button" data-activity-view="hourly" aria-pressed="false">Hourly</button>
+                  </div>
+                </div>
+                <div class="admin-analytics-chart"><canvas id="adminActivityChart" aria-label="Platform watch time and video uploads over time"></canvas></div>
+                <p class="analytics-card-caption admin-activity-peak" id="adminPeakHour"></p>
+                <p class="chart-empty-state hidden" id="adminActivityEmpty">No viewing or upload activity recorded for this period.</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="admin-analytics-section" aria-labelledby="creatorSectionTitle">
+            <div class="admin-analytics-section-heading">
+              <div><div class="eyebrow">Creator governance</div><h2 id="creatorSectionTitle">Creator compliance &amp; safety ratings</h2></div>
+              <p>Trust badges summarize this period’s published outcomes; they do not automatically change creator access.</p>
+            </div>
+            <article class="panel-card admin-creator-card">
+              <div class="table-wrap">
+                <table class="admin-creator-table">
+                  <thead><tr><th>Creator / Channel</th><th>Total uploads</th><th>Clean rate</th><th>Remediated</th><th>Flagged violations</th><th>Trust badge</th></tr></thead>
+                  <tbody id="adminCreatorRows"><tr><td colspan="6" class="empty-state">Loading creator ratings…</td></tr></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="feedback-panel" aria-labelledby="feedback-title">
+          <div class="page-header-row"><div><div class="eyebrow">Community signals</div><h1 id="feedback-title">Feedbacks &amp; reports</h1></div></div>
+          <article class="panel-card"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Reporter</th><th>Category</th><th>Video ID</th><th>Rating</th><th>Status</th><th>Action</th></tr></thead><tbody id="feedbackRows"><tr><td colspan="7" class="empty-state">Loading feedback…</td></tr></tbody></table></div></article>
+        </section>
+
+        <section class="tab-panel" id="policies-panel" aria-labelledby="policies-title">
+          <div class="page-header-row"><div><div class="eyebrow">Guidelines</div><h1 id="policies-title">Policy rules</h1></div><button class="primary-button" type="button" id="openRuleModal">Add new rule</button></div>
+          <article class="panel-card"><div class="table-wrap"><table><thead><tr><th>Rule name</th><th>Category</th><th>Age silo</th><th>Threshold</th><th>Active</th></tr></thead><tbody id="policyRows"><tr><td colspan="5" class="empty-state">Loading policy rules…</td></tr></tbody></table></div></article>
+        </section>
+
+        <section class="tab-panel" id="users-panel" aria-labelledby="users-title">
+          <div class="page-header-row"><div><div class="eyebrow">Access control</div><h1 id="users-title">User management</h1></div></div>
+          <article class="panel-card user-management-card">
+            <div class="panel-header">
+              <div>
+                <h2>Accounts</h2>
+                <p class="user-table-description">Manage account access and profile recovery.</p>
+              </div>
+            </div>
+            <div class="table-wrap user-management-table-wrap" role="region" aria-label="User accounts" tabindex="0">
+              <table class="user-management-table">
+                <thead>
+                  <tr>
+                    <th scope="col">User ID</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Child profiles</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="user-actions-heading">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="userRows"><tr><td colspan="6" class="empty-state">Loading users…</td></tr></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      <nav class="mobile-bottom-nav admin-mobile-bottom-nav" aria-label="Quick admin navigation">
+        <button class="mobile-nav-item active" type="button" data-tab="dashboard"><i class="fas fa-gauge"></i><span>Home</span></button>
+        <button class="mobile-nav-item" type="button" data-tab="feedback"><i class="fas fa-bell"></i><span>Inbox</span></button>
+      </nav>
+    </main>
+
+    <div class="modal-backdrop hidden" id="ruleModal" role="dialog" aria-modal="true" aria-labelledby="ruleModalTitle">
+      <div class="modal-card"><div class="modal-header"><h2 id="ruleModalTitle">Add policy rule</h2><button class="close-button" type="button" data-close="ruleModal" aria-label="Close">×</button></div>
+        <form class="modal-form" id="ruleForm">
+          <label><span>Rule title</span><input type="text" name="title" maxlength="120" required></label>
+          <label><span>Description / keywords</span><textarea name="description" maxlength="2000" required></textarea></label>
+          <label><span>Category</span><select name="category"><option value="visual_object">Visual object</option><option value="toxicity">Toxicity</option><option value="acoustic">Acoustic</option><option value="photosensitivity">Photosensitivity</option></select></label>
+          <label><span>Target age silo</span><select name="age_silo"><option value="preschool">Preschool</option><option value="kids">Kids</option><option value="tweens">Tweens</option><option value="teens">Teens</option><option value="unrestricted">Unrestricted</option></select></label>
+          <label><span>Remediation action</span><select name="action"><option value="blur">Blur</option><option value="bleep">Bleep</option><option value="reject">Reject</option></select></label>
+          <div class="modal-actions"><button class="secondary-button" type="button" data-close="ruleModal">Cancel</button><button class="primary-button" type="submit">Save rule</button></div>
+        </form>
+      </div>
+    </div>
+    <div class="modal-backdrop hidden" id="feedbackModal" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle">
+      <div class="modal-card"><div class="modal-header"><h2 id="feedbackModalTitle">Feedback inspector</h2><button class="close-button" type="button" data-close="feedbackModal" aria-label="Close">×</button></div><div id="feedbackDetails" class="feedback-details"></div>
+        <div class="modal-actions"><select id="feedbackStatus"><option value="OPEN">New</option><option value="IN_REVIEW">In review</option><option value="RESOLVED">Resolved</option></select><button class="primary-button" type="button" id="saveFeedbackStatus">Save status</button></div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/admin.js', v='admin-alert-center-1') }}"></script>
+  </body>
+</html>

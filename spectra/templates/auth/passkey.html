@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Switch Profile{% endblock %}
+{% block body_class %}auth-page passkey-page{% endblock %}
+{% block page_controls %}{% endblock %}
+
+{% block body %}
+<main class="passkey-screen">
+  <section class="passkey-card" aria-labelledby="passkeyTitle">
+    <header class="passkey-header">
+      <h1 id="passkeyTitle">Switch Profile</h1>
+      <a class="passkey-close" href="{{ url_for('auth.login_page') }}" aria-label="Return to sign in" title="Return to sign in">
+        <i class="fas fa-xmark" aria-hidden="true"></i>
+      </a>
+    </header>
+    <p class="passkey-instruction">Enter PIN to switch active profile</p>
+
+    <form id="passkeyForm" novalidate>
+      <input id="passkey" type="password" inputmode="numeric" autocomplete="one-time-code"
+             aria-label="Five-digit passkey" maxlength="5" class="passkey-hidden-input"/>
+      <div class="pin-dots passkey-dots" id="passkeyDots" role="status" aria-label="Passkey not entered">
+        {% for index in range(5) %}
+        <span class="pin-dot" data-passkey-dot="{{ index }}"></span>
+        {% endfor %}
+      </div>
+      <div id="passkeyError" class="passkey-error d-none" role="alert"></div>
+      <div class="keypad-grid passkey-keypad" aria-label="Passkey keypad">
+        {% for digit in ['1', '2', '3', '4', '5', '6', '7', '8', '9'] %}
+        <button class="keypad-btn" type="button" data-passkey-digit="{{ digit }}" aria-label="{{ digit }}">{{ digit }}</button>
+        {% endfor %}
+        <button class="keypad-btn keypad-action" type="button" data-passkey-clear aria-label="Clear passkey">C</button>
+        <button class="keypad-btn" type="button" data-passkey-digit="0" aria-label="0">0</button>
+        <button class="keypad-btn keypad-action" type="button" data-passkey-backspace aria-label="Delete last digit">
+          <i class="fas fa-delete-left" aria-hidden="true"></i>
+        </button>
+      </div>
+    </form>
+  </section>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+  const form = document.getElementById('passkeyForm');
+  const input = document.getElementById('passkey');
+  const dots = [...document.querySelectorAll('[data-passkey-dot]')];
+  const error = document.getElementById('passkeyError');
+  const submitUrl = {{ url_for("auth.passkey_auth") | tojson }};
+  let submitting = false;
+
+  function showError(message) {
+    error.textContent = message;
+    error.classList.remove('d-none');
+  }
+
+  function clearError() {
+    error.textContent = '';
+    error.classList.add('d-none');
+  }
+
+  function updateDots() {
+    const length = input.value.length;
+    dots.forEach((dot, index) => dot.classList.toggle('filled', index < length));
+    document.getElementById('passkeyDots').setAttribute(
+      'aria-label',
+      `${length} of 5 passkey digits entered`,
+    );
+  }
+
+  async function submitPasskey() {
+    if (submitting || input.value.length !== 5) return;
+    submitting = true;
+    clearError();
+    try {
+      const response = await fetch(submitUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({passkey: input.value}),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        showError(result.error || 'Invalid passkey.');
+        input.value = '';
+        updateDots();
+        return;
+      }
+      window.location.assign(result.redirect);
+    } catch (requestError) {
+      console.error('Unable to verify the profile passkey:', requestError);
+      showError('Connection error. Please try again.');
+      input.value = '';
+      updateDots();
+    } finally {
+      submitting = false;
+    }
+  }
+
+  function setPasskey(value) {
+    if (submitting) return;
+    input.value = value.replace(/\D/g, '').slice(0, 5);
+    clearError();
+    updateDots();
+    if (input.value.length === 5) submitPasskey();
+  }
+
+  document.querySelectorAll('[data-passkey-digit]').forEach((button) => {
+    button.addEventListener('click', () => setPasskey(input.value + button.dataset.passkeyDigit));
+  });
+  document.querySelector('[data-passkey-clear]').addEventListener('click', () => setPasskey(''));
+  document.querySelector('[data-passkey-backspace]').addEventListener('click', () => {
+    setPasskey(input.value.slice(0, -1));
+  });
+
+  input.addEventListener('input', () => setPasskey(input.value));
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitPasskey();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (/^\d$/.test(event.key)) {
+      event.preventDefault();
+      setPasskey(input.value + event.key);
+    } else if (event.key === 'Backspace') {
+      event.preventDefault();
+      setPasskey(input.value.slice(0, -1));
+    } else if (event.key === 'Escape') {
+      window.location.assign({{ url_for("auth.login_page") | tojson }});
+    }
+  });
+})();
+</script>
+{% endblock %}

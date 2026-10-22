@@ -1,0 +1,95 @@
+<form class="feedback-form" data-feedback-form data-scope="{{ feedback_scope }}" novalidate>
+  <div class="feedback-form-fields" data-feedback-fields>
+  <div class="feedback-fields-grid">
+    <div class="feedback-field">
+      <label for="feedback-category-{{ feedback_scope }}">Feedback category <span aria-hidden="true">*</span></label>
+      <select class="form-select" id="feedback-category-{{ feedback_scope }}" name="category" required>
+        <option value="">Choose a category</option>
+        <option value="missed_violation">Report Missed Violation</option>
+        <option value="false_positive">Report Incorrect Remediation</option>
+        <option value="player_bug">Player &amp; Streaming Bug</option>
+        <option value="parental_control">Parental Control &amp; PIN Issue</option>
+        <option value="feature_request">Feature Suggestion / UI Improvement</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div class="feedback-context-grid">
+      <div class="feedback-field">
+        <label for="feedback-video-{{ feedback_scope }}">Video link or ID <span class="feedback-optional">Optional</span></label>
+        <input class="form-control" id="feedback-video-{{ feedback_scope }}" name="video_context"
+               type="text" maxlength="2048" placeholder="Paste a Spectra video link or ID"/>
+      </div>
+      <div class="feedback-field feedback-time-field">
+        <label for="feedback-time-{{ feedback_scope }}">At time <span class="feedback-optional">Optional</span></label>
+        <div class="feedback-time-input">
+          <input class="form-control" id="feedback-time-{{ feedback_scope }}" name="timestamp_marker"
+                 type="number" min="0" step="0.1" inputmode="decimal" placeholder="0.0"/>
+          <span aria-hidden="true">sec</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <fieldset class="feedback-issues" data-feedback-issues hidden>
+    <legend>What happened? <span class="feedback-optional">Select all that apply</span></legend>
+    <div class="feedback-issue-options" data-issue-category="missed_violation" hidden>
+      <label><input type="checkbox" name="issue_tags" value="visual_object_missed"/> Visual object missed</label>
+      <label><input type="checkbox" name="issue_tags" value="profane_dialogue_missed"/> Profane dialogue missed</label>
+      <label><input type="checkbox" name="issue_tags" value="burned_in_text_missed"/> Burned-in text missed</label>
+      <label><input type="checkbox" name="issue_tags" value="loud_screamer_burst"/> Loud screamer burst</label>
+      <label><input type="checkbox" name="issue_tags" value="flashing_strobing_light"/> Flashing or strobing light</label>
+    </div>
+    <div class="feedback-issue-options" data-issue-category="false_positive" hidden>
+      <label><input type="checkbox" name="issue_tags" value="innocent_object_blurred"/> Innocent object blurred</label>
+      <label><input type="checkbox" name="issue_tags" value="normal_dialogue_bleeped"/> Normal dialogue bleeped</label>
+      <label><input type="checkbox" name="issue_tags" value="safe_scene_skipped"/> Safe scene skipped</label>
+    </div>
+  </fieldset>
+
+  <div class="feedback-field">
+    <label for="feedback-description-{{ feedback_scope }}">Describe the issue <span aria-hidden="true">*</span></label>
+    <textarea class="form-control feedback-description" id="feedback-description-{{ feedback_scope }}"
+              name="description" rows="5" minlength="10" maxlength="1000" required
+              placeholder="Tell us what happened and where in the video it occurred..."></textarea>
+    <div class="feedback-description-meta">
+      <span class="feedback-field-hint">10-1000 characters</span>
+      <span class="feedback-character-count" data-character-count aria-live="polite">0 / 1000</span>
+    </div>
+  </div>
+
+  <fieldset class="feedback-rating-field">
+    <legend>How was your experience? <span class="feedback-optional">Optional</span></legend>
+    <div class="feedback-rating" role="radiogroup" aria-label="Rate your experience">
+      {% for rating, label in [(1, 'Poor'), (2, 'Fair'), (3, 'Good'), (4, 'Very good'), (5, 'Excellent')] %}
+      <input class="feedback-rating-input" type="radio" name="rating-{{ feedback_scope }}"
+             id="feedback-rating-{{ feedback_scope }}-{{ rating }}" value="{{ rating }}" aria-label="{{ rating }} of 5: {{ label }}"/>
+      <label class="feedback-rating-star" for="feedback-rating-{{ feedback_scope }}-{{ rating }}" title="{{ label }}">
+        <i class="fas fa-star" aria-hidden="true"></i>
+      </label>
+      {% endfor %}
+      <span class="feedback-rating-label" data-rating-label>Choose a rating</span>
+    </div>
+  </fieldset>
+
+  <label class="feedback-diagnostics">
+    <input type="checkbox" name="include_diagnostics"/>
+    <span><strong>Include anonymous playback diagnostics</strong><small>Browser, display resolution, and active age tier</small></span>
+  </label>
+
+  <div class="feedback-error" data-feedback-error role="alert" hidden></div>
+  <div class="feedback-form-footer">
+    <button class="btn btn-spectra feedback-submit" type="submit">
+      <span class="feedback-submit-spinner" aria-hidden="true"></span>
+      <i class="fas fa-paper-plane" aria-hidden="true"></i>
+      <span data-submit-label>Send feedback</span>
+    </button>
+  </div>
+  </div>
+
+  <div class="feedback-success" data-feedback-success tabindex="-1" role="status" aria-live="polite" hidden>
+    <span class="feedback-success-icon"><i class="fas fa-check" aria-hidden="true"></i></span>
+    <h3>Thank you!</h3>
+    <p>Your feedback helps fine-tune Spectra's safety engine.</p>
+  </div>
+</form>

@@ -1,0 +1,309 @@
+{% extends "user/layout.html" %}
+{% block title %}Account Settings — Spectra.{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css', v='account-settings-6') }}"/>
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <div class="settings-layout">
+    <aside class="settings-sidebar">
+      <h1 class="settings-sidebar-title">Settings</h1>
+      <nav class="settings-nav" aria-label="Account settings sections">
+        <a class="active" aria-current="location" href="#profile-details"><i class="fas fa-user"></i>Profile details</a>
+        <a href="#family-center"><i class="fas fa-users"></i>Family center</a>
+        <a href="#manage-password"><i class="fas fa-key"></i>Manage Password</a>
+        <a href="#theme"><i class="fas fa-palette"></i>Theme</a>
+        <a href="#notifications"><i class="fas fa-bell"></i>Notifications</a>
+        <a href="#watch-time"><i class="fas fa-clock"></i>Time management</a>
+        <a href="#history"><i class="fas fa-history"></i>History</a>
+        <a href="#help-center"><i class="fas fa-circle-question"></i>Help center</a>
+        <a href="#terms"><i class="fas fa-file-contract"></i>Terms of Service</a>
+        <a href="#send-feedback"><i class="fas fa-comment-dots"></i>Send feedback</a>
+        <a href="#account-actions"><i class="fas fa-shield-halved"></i>Account actions</a>
+      </nav>
+    </aside>
+
+    <div class="settings-content">
+      <header class="settings-page-header">
+        <div>
+          <p class="settings-eyebrow">YOUR HOUSEHOLD</p>
+          <h2>Account settings</h2>
+          <p class="text-muted">Manage your profile, family, and viewing preferences.</p>
+        </div>
+        <label class="settings-search">
+          <i class="fas fa-search" aria-hidden="true"></i>
+          <input id="settingsSearch" type="search" placeholder="Search settings" aria-label="Search settings"/>
+        </label>
+      </header>
+      <div id="profileAlert" class="alert d-none settings-alert" role="status"></div>
+      <p class="settings-no-results d-none" id="settingsNoResults">No settings match your search.</p>
+
+  <section class="settings-card" id="profile-details">
+    <div class="settings-card-heading">
+      <div><h2>Profile details</h2><p>Your primary household profile and account contacts.</p></div>
+    </div>
+    <div class="profile-identity">
+      <div id="profileAvatarPreview" class="settings-avatar">
+        {% if persona.get('avatar_data') %}
+        <img src="{{ persona.get('avatar_data') }}" alt="Primary profile photo"/>
+        {% else %}{{ (account.get('full_name') or 'U')[0].upper() }}{% endif %}
+      </div>
+      <div>
+        <strong>{{ account.get('full_name', 'Household') }}</strong>
+        <div class="text-muted small">Primary account holder</div>
+        <input type="file" id="profileImage" class="d-none" accept="image/png,image/jpeg,image/webp"/>
+        <button class="btn btn-outline-spectra btn-sm mt-2" type="button" onclick="document.getElementById('profileImage').click()">
+          <i class="fas fa-camera me-1"></i>Change photo
+        </button>
+      </div>
+    </div>
+    <div class="settings-form-grid">
+      <label>Full name
+        <input class="form-control auth-input" id="profileName" maxlength="40" value="{{ account.get('full_name', '') }}" autocomplete="name"/>
+      </label>
+      <label>Email
+        <input class="form-control auth-input" value="{{ account.get('email', '') }}" readonly/>
+      </label>
+      <label>Phone number
+        <input class="form-control auth-input" id="profilePhone" type="tel" autocomplete="tel" value="{{ account.get('phone_number', '') }}" placeholder="Add a phone number"/>
+      </label>
+      <label>Age group
+        <select class="form-select auth-input" id="profileAgeGroup">
+          <option value="preschool" {% if account.get('age_group') == 'preschool' %}selected{% endif %}>Preschool (0–4)</option>
+          <option value="kids" {% if account.get('age_group') == 'kids' %}selected{% endif %}>Kids (5–8)</option>
+          <option value="tweens" {% if account.get('age_group') == 'tweens' %}selected{% endif %}>Tweens (9–12)</option>
+          <option value="teens" {% if account.get('age_group') == 'teens' %}selected{% endif %}>Teens (13–17)</option>
+          <option value="unrestricted" {% if account.get('age_group') == 'unrestricted' %}selected{% endif %}>Unrestricted (18+)</option>
+        </select>
+      </label>
+    </div>
+    <button class="btn btn-spectra btn-sm mt-3" type="button" id="saveProfileDetails"><i class="fas fa-save me-1"></i>Save profile</button>
+
+  </section>
+
+  <section class="settings-card" id="family-center">
+    <div class="settings-card-heading">
+      <div><h2>Family center</h2><p>The person who created the household is its primary account holder.</p></div>
+      <button class="btn btn-spectra btn-sm" type="button" id="showAddMember"><i class="fas fa-user-plus me-1"></i>Add member</button>
+    </div>
+    <div class="table-responsive family-member-list">
+      <table class="table align-middle family-members-table mb-0">
+        <thead><tr><th scope="col">Name</th><th scope="col">Age group</th><th scope="col" class="text-end">Actions</th></tr></thead>
+        <tbody>
+      {% for member in household_members %}
+      <tr class="family-member-row">
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="settings-avatar settings-avatar-small">
+              {% if member.get('avatar_data') %}<img src="{{ member.get('avatar_data') }}" alt=""/>
+              {% else %}{{ (member.get('name') or 'U')[0].upper() }}{% endif %}
+            </div>
+            <strong>{{ member.get('name', 'Family member') }}</strong>
+            {% if member.get('is_primary') %}<span class="settings-primary-badge">Primary</span>{% endif %}
+          </div>
+        </td>
+        <td class="text-capitalize">{{ member.get('age_group', '') }}</td>
+        <td class="text-end">
+        {% if not member.get('is_primary') %}
+          <button class="btn btn-outline-spectra btn-sm edit-member" type="button" aria-label="Edit {{ member.get('name', 'family member') }}" title="Edit"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-outline-danger btn-sm delete-member" type="button" aria-label="Remove {{ member.get('name', 'family member') }}" title="Remove"><i class="fas fa-trash"></i></button>
+        {% endif %}
+        </td>
+      </tr>
+      {% if not member.get('is_primary') %}
+      <tr class="family-edit-row d-none">
+        <td colspan="3">
+          <div class="settings-form-grid family-edit-form" data-member-id="{{ member['_id'] }}">
+            <label>Name<input class="form-control auth-input member-name" value="{{ member.get('name', '') }}" maxlength="40"/></label>
+            <label>Age group
+              <select class="form-select auth-input member-age">
+                <option value="preschool" {% if member.get('age_group') == 'preschool' %}selected{% endif %}>Preschool</option>
+                <option value="kids" {% if member.get('age_group') == 'kids' %}selected{% endif %}>Kids</option>
+                <option value="tweens" {% if member.get('age_group') == 'tweens' %}selected{% endif %}>Tweens</option>
+                <option value="teens" {% if member.get('age_group') == 'teens' %}selected{% endif %}>Teens</option>
+                <option value="unrestricted" {% if member.get('age_group') == 'unrestricted' %}selected{% endif %}>Unrestricted</option>
+              </select>
+            </label>
+            <label>New 5-digit passkey
+              <input class="form-control auth-input member-pin" type="password" inputmode="numeric" maxlength="5" autocomplete="new-password"/>
+            </label>
+            <label>Account password
+              <input class="form-control auth-input member-password" type="password" autocomplete="current-password"/>
+            </label>
+            <label class="member-photo-label">Change member photo
+              <input class="form-control auth-input member-photo" type="file" accept="image/png,image/jpeg,image/webp"/>
+            </label>
+          </div>
+          <div class="family-member-actions">
+            <button class="btn btn-spectra btn-sm save-member" type="button">Save changes</button>
+            <button class="btn btn-outline-secondary btn-sm cancel-member-edit" type="button">Cancel</button>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+      {% else %}
+      <tr><td colspan="3" class="text-muted">No profiles have been added to the household yet.</td></tr>
+      {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div id="addMemberForm" class="d-none settings-add-member">
+      <h3>Add a family member</h3>
+      <div class="settings-form-grid">
+        <label>Name<input class="form-control auth-input" id="memberName" maxlength="40"/></label>
+        <label>Age group
+          <select class="form-select auth-input" id="memberAgeGroup">
+            <option value="preschool">Preschool</option><option value="kids" selected>Kids</option>
+            <option value="tweens">Tweens</option><option value="teens">Teens</option><option value="unrestricted">Unrestricted</option>
+          </select>
+        </label>
+        <label>5-digit passkey<input class="form-control auth-input" id="memberPasskey" type="password" inputmode="numeric" maxlength="5" autocomplete="new-password"/></label>
+        <label>Profile photo<input class="form-control auth-input" id="newMemberPhoto" type="file" accept="image/png,image/jpeg,image/webp"/></label>
+        <label>Main account password<input class="form-control auth-input" id="memberAccountPassword" type="password" autocomplete="current-password"/></label>
+      </div>
+      <button class="btn btn-spectra btn-sm mt-3" type="button" id="addMemberButton">Add family member</button>
+    </div>
+  </section>
+
+  <section class="settings-card" id="manage-password">
+    <div class="settings-card-heading">
+      <div><h2>Manage password</h2><p>Enter your current password to verify your account. Use email recovery if you forgot it.</p></div>
+    </div>
+    <div class="settings-form-grid">
+      <label>Current password<input class="form-control auth-input" type="password" id="currentPassword" autocomplete="current-password"/></label>
+    </div>
+    <button class="btn btn-spectra btn-sm mt-3" type="button" id="verifyPasswordButton">Verify password</button>
+    <details class="settings-details">
+      <summary>Forgot your password? Reset it by email</summary>
+      <p class="small text-muted mt-2">We’ll email a one-time reset link to your registered address. Open it to enter and confirm a new password. The link expires after 30 minutes; never send your password by email.</p>
+      <button class="btn btn-outline-spectra btn-sm" type="button" id="requestPasswordResetLink">Email password reset link</button>
+    </details>
+  </section>
+
+  <section class="settings-card" id="theme">
+    <div class="settings-card-heading"><div><h2>Theme</h2><p>Choose how Spectra looks on this device.</p></div></div>
+    <label class="settings-limit-select">Appearance
+      <select class="form-select auth-input" id="themePreference">
+        <option value="light" {% if settings.get('theme', 'system') == 'light' %}selected{% endif %}>Light</option>
+        <option value="dark" {% if settings.get('theme') == 'dark' %}selected{% endif %}>Dark</option>
+        <option value="system" {% if settings.get('theme', 'system') == 'system' %}selected{% endif %}>System default</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="settings-card" id="notifications">
+    <div class="settings-card-heading"><div><h2>Notifications</h2><p>Manage the in-app notifications you receive.</p></div></div>
+    <label class="settings-switch-label settings-notification-control">
+      <span class="settings-switch-row">
+        <span>In-app notifications</span>
+        <input type="checkbox" class="form-check-input" id="notificationsEnabled" {% if settings.get('notifications_enabled', True) %}checked{% endif %}/>
+      </span>
+    </label>
+  </section>
+
+  <section class="settings-card" id="watch-time">
+    <div class="settings-card-heading"><div><h2>Time management</h2><p>Set a daily video-watching reminder for this profile.</p></div></div>
+    <label class="settings-limit-select">Daily viewing limit
+      <select class="form-select auth-input" id="watchLimit">
+        <option value="30" {% if settings.get('watch_limit_minutes', 60) == 30 %}selected{% endif %}>30 minutes</option>
+        <option value="60" {% if settings.get('watch_limit_minutes', 60) == 60 %}selected{% endif %}>1 hour</option>
+        <option value="90" {% if settings.get('watch_limit_minutes', 60) == 90 %}selected{% endif %}>1½ hours</option>
+        <option value="120" {% if settings.get('watch_limit_minutes', 60) == 120 %}selected{% endif %}>2 hours</option>
+      </select>
+    </label>
+    <p class="small text-muted mt-2 mb-0">When the limit is reached, playback pauses and you can extend by 5 minutes or ignore the limit for today.</p>
+  </section>
+
+  <section class="settings-card" id="history">
+    <div class="settings-card-heading">
+      <div><h2>Watch history</h2><p>History for the currently selected family profile.</p></div>
+      <button class="btn btn-outline-danger btn-sm" type="button" id="clearHistoryButton">Delete history</button>
+    </div>
+    <form class="history-filter-bar" method="get" action="{{ url_for('auth.profile_page') }}#history">
+      <label>Time period
+        <select name="period" class="form-select auth-input" onchange="this.form.submit()">
+          <option value="all" {% if history_filter == 'all' %}selected{% endif %}>All time</option>
+          <option value="today" {% if history_filter == 'today' %}selected{% endif %}>Today</option>
+          <option value="week" {% if history_filter == 'week' %}selected{% endif %}>Last 7 days</option>
+          <option value="month" {% if history_filter == 'month' %}selected{% endif %}>Last 30 days</option>
+        </select>
+      </label>
+      <label>Category
+        <select id="historyCategoryFilter" class="form-select auth-input">
+          <option value="">All categories</option>
+          {% for category in history_videos.values() | map(attribute='category') | unique | sort %}
+          <option value="{{ category }}">{{ category }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </form>
+    {% if history_items %}
+    <div class="settings-history-list" id="settingsHistoryList">
+      {% for group in history_groups %}
+      <section class="settings-history-day" data-day="{{ group.key }}">
+        <h3>{{ group.label }}</h3>
+        <div class="settings-history-grid">
+          {% for item in group["items"] %}
+          {% set video = item.video %}
+          <a class="settings-history-tile settings-history-item" href="{{ url_for('user.watch', v=video['_id']) }}" data-category="{{ video.get('category', 'Other') }}" title="{{ video.get('title', 'Video') }}">
+            <span class="history-thumb">
+              {% if video.get('thumbnail') %}<img src="{{ url_for('user.video_media', video_id=video['_id'], asset='thumbnails/' + video['thumbnail']) }}" alt="{{ video.get('title', 'Video') }}"/>
+              {% else %}<i class="fas fa-play"></i>{% endif %}
+            </span>
+            <span class="history-tile-title">{{ video.get('title', 'Video') }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+    <p class="small text-muted d-none mt-3" id="noFilteredHistory">No videos match this category.</p>
+    {% else %}
+    <p class="text-muted mb-0">No watch history videos are available for this profile and period.</p>
+    {% endif %}
+  </section>
+
+  <section class="settings-card" id="help-center">
+    <div class="settings-card-heading"><div><h2>Help center</h2><p>Browse common questions and guidance for using Spectra.</p></div></div>
+    <iframe class="settings-embedded-page" src="{{ url_for('user.help_page', embedded=1) }}"
+            title="Help Center" loading="lazy"></iframe>
+  </section>
+
+  <section class="settings-card" id="terms">
+    <div class="settings-card-heading"><div><h2>Terms of Service</h2><p>Review the terms for using Spectra.</p></div></div>
+    <iframe class="settings-embedded-page" src="{{ url_for('user.terms_page', embedded=1) }}"
+            title="Terms of Service" loading="lazy"></iframe>
+  </section>
+
+  <section class="settings-card" id="send-feedback">
+    <div class="settings-card-heading"><div><h2>Send feedback</h2><p>Report an issue or suggest an improvement.</p></div></div>
+    <iframe class="settings-embedded-page" src="{{ url_for('user.feedback_page', embedded=1) }}"
+            title="Send Feedback" loading="lazy"></iframe>
+  </section>
+
+  <section class="settings-card settings-danger-card" id="account-actions">
+    <div class="settings-card-heading"><div><h2>Account actions</h2><p>Sign out of Spectra or permanently remove your household account and associated profiles.</p></div></div>
+    <div class="settings-action-row">
+      <a class="btn btn-outline-spectra" href="{{ url_for('auth.logout') }}"><i class="fas fa-right-from-bracket me-1"></i>Sign out</a>
+    </div>
+    <details class="settings-details settings-delete-details">
+      <summary>Delete household account permanently</summary>
+      <div class="settings-delete-form">
+        <p>This permanently deletes your account, family profiles, uploaded videos, and associated viewing data. This cannot be undone.</p>
+        <label>Enter your account password to confirm
+          <input class="form-control auth-input" type="password" id="deleteAccountPassword" autocomplete="current-password"/>
+        </label>
+        <label class="settings-confirm-delete"><input type="checkbox" id="confirmDeleteAccount"/> I understand this action cannot be undone.</label>
+        <button class="btn btn-danger btn-sm" type="button" id="deleteAccountButton">Delete household account</button>
+      </div>
+    </details>
+  </section>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/settings.js', v='account-settings-6') }}"></script>
+{% endblock %}
