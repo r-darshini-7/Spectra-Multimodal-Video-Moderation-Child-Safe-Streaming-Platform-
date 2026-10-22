@@ -1,0 +1,14 @@
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# Generated moderation data and local indexes
+spectra/chroma_db/
+spectra/static/uploads/
+spectra/static/hls/
+spectra/static/downloads/
+*.mp4
+*.ts
+*.bin

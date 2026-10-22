@@ -1,0 +1,87 @@
+{% extends "user/layout.html" %}
+{% block title %}{% if search_q %}"{{ search_q }}" — {% endif %}Search — Spectra.{% endblock %}
+
+{% block content %}
+<div class="feed-container py-4">
+
+  <!-- Search header -->
+  <div class="d-flex align-items-center flex-wrap gap-3 mb-4">
+    <div>
+      <h4 class="mb-0">
+        {% if search_q %}
+          Results for <span class="text-spectra">"{{ search_q }}"</span>
+        {% else %}
+          Browse All Videos
+        {% endif %}
+      </h4>
+      <p class="text-muted small mb-0">{{ videos|length }} video{{ 's' if videos|length != 1 }} found</p>
+    </div>
+
+    <!-- Category filter -->
+    {% if categories %}
+    <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-muted small">Filter:</span>
+      <a href="{{ url_for('user.search', q=search_q) }}"
+         class="chip-btn {% if not selected_cat %}active{% endif %}">All</a>
+      {% for cat in categories %}
+      <a href="{{ url_for('user.search', q=search_q, cat=cat) }}"
+         class="chip-btn {% if selected_cat == cat %}active{% endif %}">{{ cat }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Results grid -->
+  {% if videos %}
+  <div class="video-grid">
+    {% for v in videos %}
+    <a href="{{ url_for('user.watch', v=v['_id']) }}" class="video-card-link">
+      <div class="video-card">
+        <div class="video-thumbnail-wrapper">
+          {% if v.get('thumbnail') %}
+          <img src="{{ url_for('user.video_media', video_id=v['_id'], asset='thumbnails/' + v['thumbnail']) }}"
+               class="video-thumbnail" loading="lazy" alt="{{ v['title'] }}"/>
+          {% else %}
+          <div class="video-thumbnail-placeholder"><i class="fas fa-play-circle"></i></div>
+          {% endif %}
+          <div class="video-duration">{{ v.get('duration_str', '0:00') }}</div>
+          {% if v.get('ai_result') and v['ai_result'].get('verdict') == 'safe' %}
+          {% endif %}
+        </div>
+        <div class="video-info">
+          {% if v.get('creator_avatar') %}
+          <img class="video-channel-avatar" src="{{ v.creator_avatar }}" alt="{{ v.creator_name }}"/>
+          {% else %}
+          <div class="video-channel-avatar">{{ v.get('creator_name', 'C')[0].upper() }}</div>
+          {% endif %}
+          <div class="video-meta">
+            <h3 class="video-title">{{ v['title'] }}</h3>
+            <p class="video-channel-name">{{ v.get('creator_name', 'Creator') }}</p>
+            <p class="video-stats">
+              {{ '{:,}'.format(v.get('views',0)) }} views · {{ v.get('created_at_rel','') }}
+              {% if v.get('category') %}
+              · <span class="text-spectra">{{ v.category }}</span>
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+    <h5 class="text-muted">No results found</h5>
+    <p class="text-muted small">
+      {% if search_q %}Try different keywords or remove the category filter.
+      {% else %}No videos available yet.{% endif %}
+    </p>
+    <a href="{{ url_for('user.feed') }}" class="btn btn-spectra mt-2">
+      <i class="fas fa-home me-2"></i>Back to Home
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "user/layout.html" %}
+{% block title %}{{ channel.name }} — Spectra.{% endblock %}
+
+{% block content %}
+<div class="feed-container py-4">
+
+  <!-- Channel banner -->
+  <div class="channel-page-banner mb-4 p-4 rounded d-flex align-items-center gap-4 flex-wrap">
+    <div class="channel-page-avatar">{{ channel.get('name','C')[0].upper() }}</div>
+    <div class="flex-grow-1">
+      <h2 class="mb-1 fw-bold">{{ channel.get('name','Channel') }}</h2>
+      <p class="text-muted mb-2">
+        <span id="subCount">{{ '{:,}'.format(channel.get('subscriber_count',0)) }}</span> subscribers ·
+        {{ videos|length }} videos
+      </p>
+      {% if channel.get('description') %}
+      <p class="text-muted small mb-0">{{ channel.description }}</p>
+      {% endif %}
+    </div>
+    <button class="btn btn-subscribe {% if is_subscribed %}subscribed{% endif %}"
+            id="subscribeBtn"
+            onclick="toggleSubscribe('{{ channel._id }}')">
+      <span id="subBtnText">{{ 'Subscribed' if is_subscribed else 'Subscribe' }}</span>
+    </button>
+  </div>
+
+  <!-- Videos grid -->
+  <h5 class="mb-3 text-muted"><i class="fas fa-film me-2 text-spectra"></i>Videos</h5>
+  {% if videos %}
+  <div class="video-grid">
+    {% for v in videos %}
+    <a href="{{ url_for('user.watch', v=v['_id']) }}" class="video-card-link">
+      <div class="video-card">
+        <div class="video-thumbnail-wrapper">
+          {% if v.get('thumbnail') %}
+          <img src="{{ url_for('user.video_media', video_id=v['_id'], asset='thumbnails/' + v['thumbnail']) }}"
+               class="video-thumbnail" loading="lazy" alt="{{ v['title'] }}"/>
+          {% else %}
+          <div class="video-thumbnail-placeholder"><i class="fas fa-play-circle"></i></div>
+          {% endif %}
+          <div class="video-duration">{{ v.get('duration_str','0:00') }}</div>
+        </div>
+        <div class="video-info">
+          <div class="video-channel-avatar">{{ channel.get('name','C')[0].upper() }}</div>
+          <div class="video-meta">
+            <h3 class="video-title">{{ v['title'] }}</h3>
+            <p class="video-stats">{{ '{:,}'.format(v.get('views',0)) }} views · {{ v.get('created_at_rel','') }}</p>
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <i class="fas fa-video-slash fa-3x text-muted mb-3"></i>
+    <p class="text-muted">No videos on this channel yet.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Reuse player.js subscribe function — it's included globally via spectra.js
+// but we need toggleSubscribe defined here too for the channel page
+async function toggleSubscribe(channelId) {
+  try {
+    const res = await fetch(`/api/subscribe/${channelId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      const btn = document.getElementById('subscribeBtn');
+      const text = document.getElementById('subBtnText');
+      const count = document.getElementById('subCount');
+      btn?.classList.toggle('subscribed', data.subscribed);
+      if (text) text.textContent = data.subscribed ? 'Subscribed' : 'Subscribe';
+      if (count) count.textContent = data.count.toLocaleString();
+    }
+  } catch(e) { console.error(e); }
+}
+</script>
+{% endblock %}

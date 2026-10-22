@@ -1,0 +1,44 @@
+{% extends "user/layout.html" %}
+{% block title %}Watch History — Spectra.{% endblock %}
+{% block content %}
+<div class="feed-container py-4">
+  <h4 class="mb-4"><i class="fas fa-history me-2 text-spectra"></i>Watch History</h4>
+  {% if records %}
+  <div class="video-grid">
+    {% for r in records %}
+    {% set v = videos.get(r.video_id) %}
+    {% if v %}
+    <a href="{{ url_for('user.watch', v=v['_id']) }}" class="video-card-link">
+      <div class="video-card">
+        <div class="video-thumbnail-wrapper">
+          {% if v.get('thumbnail') %}
+          <img src="{{ url_for('user.video_media', video_id=v['_id'], asset='thumbnails/' + v['thumbnail']) }}" class="video-thumbnail" loading="lazy"/>
+          {% else %}<div class="video-thumbnail-placeholder"><i class="fas fa-play-circle"></i></div>{% endif %}
+        </div>
+        <div class="video-info">
+          {% if v.get('creator_avatar') %}
+          <img class="video-channel-avatar" src="{{ v.creator_avatar }}" alt="{{ v.creator_name }}"/>
+          {% else %}
+          <div class="video-channel-avatar">{{ v.get('creator_name', 'C')[0].upper() }}</div>
+          {% endif %}
+          <div class="video-meta">
+            <h3 class="video-title">{{ v['title'] }}</h3>
+            <p class="video-channel-name">{{ v.get('creator_name', 'Creator') }}</p>
+            <p class="video-stats">{{ '{:,}'.format(v.get('views',0)) }} views</p>
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+    <p class="text-muted">
+      Your watch history will appear here.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

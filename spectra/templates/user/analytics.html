@@ -1,0 +1,305 @@
+{% extends "user/layout.html" %}
+{% block title %}{% if can_view_household %}Household Analytics{% else %}My Analytics{% endif %} — Spectra.{% endblock %}
+
+{% block extra_head %}
+<style>
+  .analytics-page {
+    --analytics-purple: #5c45fd;
+    --analytics-purple-light: #7b61ff;
+    --analytics-green: #22c55e;
+    --analytics-orange: #f59e0b;
+    --analytics-blue: #06b6d4;
+    --analytics-ink: #1e293b;
+    --analytics-muted: #64748b;
+    color: var(--analytics-ink);
+  }
+  .analytics-heading { margin-bottom: 1.5rem; }
+  .analytics-heading h1 { color: var(--analytics-ink); font-weight: 750; letter-spacing: -.03em; }
+  .analytics-heading p { color: var(--analytics-muted); }
+  .analytics-filter {
+    min-height: 42px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    color: var(--analytics-ink);
+  }
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .analytics-card {
+    min-width: 0;
+    padding: 1.25rem;
+    background: #fff;
+    border: 1px solid #eef0f5;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.06);
+  }
+  .analytics-card h2 {
+    color: var(--analytics-ink);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .analytics-kpi { min-height: 150px; }
+  .analytics-kpi-icon {
+    width: 42px; height: 42px; border-radius: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #f0edff; color: var(--analytics-purple); font-size: 1rem;
+  }
+  .analytics-kpi-icon.green { background: #e9f9ef; color: var(--analytics-green); }
+  .analytics-kpi-icon.orange { background: #fff5df; color: var(--analytics-orange); }
+  .analytics-kpi-icon.blue { background: #e6fafe; color: var(--analytics-blue); }
+  .analytics-kpi-label { color: var(--analytics-muted); font-size: .82rem; font-weight: 600; }
+  .analytics-kpi-value {
+    display: block; margin-top: .55rem; color: var(--analytics-ink);
+    font-size: clamp(1.2rem, 2vw, 1.75rem); font-weight: 750; line-height: 1.18;
+    overflow-wrap: anywhere;
+  }
+  .analytics-kpi-hint { color: var(--analytics-muted); font-size: .78rem; margin-top: .4rem; }
+  .analytics-status {
+    display: inline-flex; margin-top: .55rem; padding: .24rem .65rem;
+    border-radius: 999px; background: #e9f9ef; color: #15803d;
+    font-size: .74rem; font-weight: 700;
+  }
+  .analytics-favorite {
+    display: flex; align-items: center; gap: .75rem; margin-top: .75rem;
+    min-width: 0;
+  }
+  .analytics-favorite img {
+    width: 64px; height: 48px; flex: 0 0 64px;
+    object-fit: cover; border-radius: 9px; background: #f1f5f9;
+  }
+  .analytics-favorite-title {
+    color: var(--analytics-ink); font-size: .88rem; font-weight: 700;
+    line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .analytics-section-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem; margin-top: 1rem;
+  }
+  .analytics-chart { position: relative; height: 270px; margin-top: 1rem; }
+  .analytics-chart.chart-short { height: 230px; }
+  .analytics-subtitle { color: var(--analytics-muted); font-size: .82rem; margin: .45rem 0 0; }
+  .analytics-creator-list { display: grid; gap: .85rem; margin-top: 1.1rem; }
+  .analytics-creator {
+    display: flex; align-items: center; gap: .75rem; min-width: 0;
+  }
+  .analytics-creator-rank {
+    width: 26px; color: #94a3b8; font-size: .8rem; font-weight: 700; text-align: center;
+  }
+  .analytics-creator-avatar {
+    width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%;
+    object-fit: cover; display: grid; place-items: center;
+    background: #f0edff; color: var(--analytics-purple); font-weight: 700;
+  }
+  .analytics-creator-name { min-width: 0; color: var(--analytics-ink); font-weight: 650; overflow-wrap: anywhere; }
+  .analytics-creator-minutes { margin-left: auto; color: var(--analytics-muted); font-size: .8rem; white-space: nowrap; }
+  .analytics-progress {
+    height: 12px; overflow: hidden; border-radius: 999px;
+    background: #edf0f5; margin: 1rem 0 .6rem;
+  }
+  .analytics-progress-bar {
+    width: 0; height: 100%; border-radius: inherit;
+    background: linear-gradient(90deg, var(--analytics-purple), var(--analytics-purple-light));
+    transition: width .5s ease;
+  }
+  .analytics-insight-value { color: var(--analytics-ink); font-size: 1.75rem; font-weight: 750; }
+  .analytics-badge-list { display: grid; gap: .75rem; margin-top: 1rem; }
+  .analytics-badge {
+    display: flex; align-items: center; gap: .8rem; padding: .85rem;
+    border-radius: 13px; background: #f8f7ff;
+  }
+  .analytics-badge-icon {
+    width: 42px; height: 42px; flex: 0 0 42px; border-radius: 13px;
+    display: grid; place-items: center; color: var(--analytics-purple); background: #ece8ff;
+  }
+  .analytics-badge.orange { background: #fffaf0; }
+  .analytics-badge.orange .analytics-badge-icon { background: #fff0cf; color: #c47b00; }
+  .analytics-badge.blue { background: #f0fcff; }
+  .analytics-badge.blue .analytics-badge-icon { background: #dcf8fd; color: #07849a; }
+  .analytics-badge-title { color: var(--analytics-ink); font-weight: 700; font-size: .88rem; }
+  .analytics-badge-detail { color: var(--analytics-muted); font-size: .78rem; margin-top: .12rem; }
+  .analytics-empty {
+    display: flex; min-height: 110px; align-items: center; justify-content: center;
+    text-align: center; color: var(--analytics-muted); font-size: .88rem; padding: 1rem;
+  }
+  .analytics-privacy {
+    margin-top: 1rem; padding: .85rem 1rem; border: 1px solid #e8eaf0;
+    border-radius: 13px; background: #fff; color: var(--analytics-muted);
+    font-size: .8rem;
+  }
+  @media (max-width: 1000px) {
+    .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 650px) {
+    .analytics-section-grid { grid-template-columns: 1fr; }
+    .analytics-card { padding: 1rem; }
+    .analytics-chart { height: 245px; }
+  }
+  @media (max-width: 420px) {
+    .analytics-grid { grid-template-columns: 1fr; }
+    .analytics-kpi { min-height: 0; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="feed-container py-4 analytics-page">
+  <div class="analytics-heading d-flex flex-wrap align-items-end justify-content-between gap-3">
+    <div>
+      <h1 class="h3 mb-1">
+        <i class="fas fa-chart-pie me-2" style="color:#5c45fd"></i>
+        {% if can_view_household %}Household Analytics{% else %}My Analytics{% endif %}
+      </h1>
+      <p class="mb-0">
+        {% if can_view_household %}A friendly snapshot of viewing across your household.{% else %}See your viewing habits, favorite topics, and videos.{% endif %}
+      </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      {% if can_view_household %}
+      <label class="d-flex align-items-center gap-2 mb-0">
+        <span class="small text-muted">Profile</span>
+        <select id="analyticsAgeGroup" class="form-select analytics-filter" aria-label="Analytics age group">
+          <option value="all">All household profiles</option>
+          {% for value, label in age_group_labels.items() %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <label class="d-flex align-items-center gap-2 mb-0">
+        <span class="small text-muted">Time period</span>
+        <select id="analyticsPeriod" class="form-select analytics-filter" aria-label="Analytics date range">
+          <option value="1">Past 1 month</option>
+          <option value="3">Past 3 months</option>
+          <option value="6">Past 6 months</option>
+          <option value="12">Past 1 year</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div id="analyticsError" class="alert alert-danger d-none" role="alert"></div>
+
+  <section class="analytics-grid" aria-label="Viewing summary">
+    <article class="analytics-card analytics-kpi">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="analytics-kpi-label">Total screen time</span>
+        <span class="analytics-kpi-icon"><i class="fas fa-clock"></i></span>
+      </div>
+      <strong class="analytics-kpi-value" id="totalScreenTime">—</strong>
+      <p class="analytics-kpi-hint mb-0">Time spent watching in this period</p>
+    </article>
+    <article class="analytics-card analytics-kpi">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="analytics-kpi-label">Daily average</span>
+        <span class="analytics-kpi-icon green"><i class="fas fa-calendar-day"></i></span>
+      </div>
+      <strong class="analytics-kpi-value" id="dailyAverage">—</strong>
+      <span class="analytics-status" id="viewingStatus">A gentle overview</span>
+    </article>
+    <article class="analytics-card analytics-kpi">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="analytics-kpi-label">Top content focus</span>
+        <span class="analytics-kpi-icon orange"><i class="fas fa-lightbulb"></i></span>
+      </div>
+      <strong class="analytics-kpi-value" id="topTopic">Not enough history yet</strong>
+      <p class="analytics-kpi-hint mb-0">Based on the topics you watched most</p>
+    </article>
+    <article class="analytics-card analytics-kpi">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="analytics-kpi-label">Most replayed</span>
+        <span class="analytics-kpi-icon blue"><i class="fas fa-repeat"></i></span>
+      </div>
+      <div class="analytics-favorite d-none" id="favoriteVideo">
+        <img id="favoriteThumbnail" alt="" class="d-none"/>
+        <div class="min-width-0">
+          <a id="favoriteTitle" class="analytics-favorite-title text-decoration-none" href="#"></a>
+          <div class="analytics-kpi-hint" id="favoritePlays"></div>
+        </div>
+      </div>
+      <p class="analytics-empty mb-0" id="favoriteEmpty">Your favorite will appear as you watch.</p>
+    </article>
+  </section>
+
+  <section class="analytics-section-grid" aria-label="Viewing patterns">
+    <article class="analytics-card">
+      <h2><i class="fas fa-chart-line me-2" style="color:#5c45fd"></i>Watching hours</h2>
+      <p class="analytics-subtitle">Your total viewing time, month by month.</p>
+      <div class="analytics-chart chart-short"><canvas id="watchTimeChart" aria-label="Hours spent watching videos by month"></canvas></div>
+      <p id="watchTimeEmpty" class="analytics-empty d-none">No watch time recorded for this period yet.</p>
+    </article>
+    <article class="analytics-card">
+      <h2><i class="fas fa-calendar-week me-2" style="color:#06b6d4"></i>Your week at a glance</h2>
+      <p class="analytics-subtitle">Compare weekday viewing (Mon–Fri) with weekend viewing (Sat–Sun).</p>
+      <div class="analytics-chart chart-short"><canvas id="weeklyWatchChart" aria-label="Watch time from Monday to Sunday"></canvas></div>
+      <p class="small text-muted mb-0" id="weekPatternSummary"></p>
+      <p id="weeklyWatchEmpty" class="analytics-empty d-none">Your weekly pattern will appear as you watch.</p>
+    </article>
+    <article class="analytics-card">
+      <h2><i class="fas fa-sun me-2" style="color:#f59e0b"></i>When you watch</h2>
+      <p class="analytics-subtitle">Morning 6–12 · Afternoon 12–5 · Evening 5–9 · Night 9 onwards.</p>
+      <div class="analytics-chart chart-short"><canvas id="timeOfDayChart" aria-label="Distribution of viewing by time of day"></canvas></div>
+      <p class="small text-muted mb-0" id="timeOfDaySummary"></p>
+      <p id="timeOfDayEmpty" class="analytics-empty d-none">Time-of-day insights will appear with more viewing history.</p>
+    </article>
+    <article class="analytics-card">
+      <h2><i class="fas fa-chart-column me-2" style="color:#7b61ff"></i>Video activity</h2>
+      <p class="analytics-subtitle">Videos you liked, saved, and downloaded.</p>
+      <div class="analytics-chart chart-short"><canvas id="videoActivityChart" aria-label="Liked, saved, and downloaded videos"></canvas></div>
+    </article>
+    <article class="analytics-card">
+      <h2><i class="fas fa-heart me-2" style="color:#ef5da8"></i>Topics you enjoy</h2>
+      <p class="analytics-subtitle">Topics linked to your likes, saves, and downloads.</p>
+      <div class="analytics-chart chart-short"><canvas id="topicInterestsChart" aria-label="Video topics based on your interactions"></canvas></div>
+      <p id="topicInterestsEmpty" class="analytics-empty d-none">No topic activity recorded in this period yet.</p>
+    </article>
+    <article class="analytics-card">
+      <h2><i class="fas fa-star me-2" style="color:#f59e0b"></i>Creators you watch</h2>
+      <p class="analytics-subtitle">Your top creators, ranked by time watched.</p>
+      <div class="analytics-creator-list" id="topCreators"></div>
+      <p class="analytics-empty d-none" id="creatorsEmpty">Creator insights will appear as you watch videos.</p>
+    </article>
+  </section>
+
+  <section class="analytics-section-grid" aria-label="Progress and positive moments">
+    <article class="analytics-card">
+      <h2><i class="fas fa-circle-check me-2" style="color:#22c55e"></i>Videos you finish</h2>
+      <p class="analytics-subtitle">A video counts as finished when you watch about 90% or more.</p>
+      <div class="d-flex justify-content-between align-items-end mt-3">
+        <strong class="analytics-insight-value" id="completionRate">—</strong>
+        <span class="small text-muted" id="completionCount">No viewing history yet</span>
+      </div>
+      <div class="analytics-progress" role="progressbar" aria-label="Video completion rate" aria-valuemin="0" aria-valuemax="100">
+        <div class="analytics-progress-bar" id="completionProgress"></div>
+      </div>
+      <p class="small text-muted mb-0">Completion is estimated from the furthest point reached in each video.</p>
+    </article>
+    <article class="analytics-card">
+      <h2><i class="fas fa-bookmark me-2" style="color:#5c45fd"></i>Saved and watched</h2>
+      <p class="analytics-subtitle">How many videos in your saved list you’ve also watched.</p>
+      <strong class="analytics-insight-value d-block mt-3" id="savedWatchedCount">—</strong>
+      <p class="small text-muted mb-0" id="savedWatchedHint">Your saved-list progress will appear here.</p>
+    </article>
+    <article class="analytics-card">
+      <h2><i class="fas fa-award me-2" style="color:#f59e0b"></i>Good things you’ve explored</h2>
+      <p class="analytics-subtitle">A little celebration of your viewing habits.</p>
+      <div class="analytics-badge-list" id="analyticsBadges"></div>
+      <p class="analytics-empty d-none" id="badgesEmpty">Every watch is a chance to discover something new.</p>
+    </article>
+  </section>
+
+  <div class="analytics-privacy">
+    <i class="fas fa-shield-alt me-1" style="color:#5c45fd"></i>
+    These insights are based on viewing activity recorded for the selected profile and time period. Some details may be unavailable if history tracking was limited or recently enabled.
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/user_analytics.js') }}"></script>
+{% endblock %}

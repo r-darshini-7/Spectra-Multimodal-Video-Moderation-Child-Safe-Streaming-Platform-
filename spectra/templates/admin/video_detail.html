@@ -1,0 +1,282 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ video.title }} — Video Detail · Spectra. Studio{% endblock %}
+{% block page_title %}<i class="fas fa-film mr-2 text-spectra"></i>Video Detail{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{{ url_for('admin.video_list') }}">Videos</a></li>
+  <li class="breadcrumb-item active">Detail</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+
+  <!-- ── LEFT: Video info + actions ───────────────────────────────────────── -->
+  <div class="col-lg-5 mb-4">
+    <div class="card card-dark card-spectra">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-info-circle mr-2"></i>Video Info</h3>
+        <span class="badge {% if video.status == 'published' %}badge-success{% elif video.status == 'flagged' %}badge-danger{% elif video.status == 'transcoding' %}badge-info{% elif video.status == 'analyzed' %}badge-warning{% else %}badge-secondary{% endif %}">
+          {{ video.status | capitalize }}
+        </span>
+      </div>
+      <div class="card-body">
+
+        <!-- Thumbnail -->
+        <div class="mb-3 rounded overflow-hidden" style="aspect-ratio:16/9;background:#111;">
+          {% if video.get('thumbnail') %}
+          <img src="{{ url_for('static', filename='thumbnails/' + video['thumbnail']) }}"
+               style="width:100%;height:100%;object-fit:cover;" alt="{{ video.title }}"/>
+          {% else %}
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#555;">
+            <i class="fas fa-film fa-3x"></i>
+          </div>
+          {% endif %}
+        </div>
+
+        <table class="table table-dark table-sm mb-3">
+          <tr><th style="width:35%;color:#888;">Title</th><td>{{ video.title }}</td></tr>
+          <tr><th style="color:#888;">Silo</th><td><span class="badge silo-badge-sm silo-{{ video.get('age_silo','') }}">{{ video.get('age_silo','—') }}</span></td></tr>
+          <tr><th style="color:#888;">Category</th><td>{{ video.get('category','—') }}</td></tr>
+          <tr><th style="color:#888;">Duration</th><td>{{ video.get('duration_str','—') }}</td></tr>
+          <tr><th style="color:#888;">Views</th><td>{{ '{:,}'.format(video.get('views',0)) }}</td></tr>
+          <tr><th style="color:#888;">Likes</th><td>{{ video.get('likes',0) }}</td></tr>
+          <tr><th style="color:#888;">Channel</th><td>{{ video.get('channel_name','—') }}</td></tr>
+          <tr><th style="color:#888;">Uploaded</th>
+            <td>{{ video.get('created_at','').strftime('%d %b %Y %H:%M') if video.get('created_at') else '—' }}</td>
+          </tr>
+          {% if video.get('hls_master') %}
+          <tr><th style="color:#888;">HLS</th><td><span class="text-success small">Ready</span></td></tr>
+          {% endif %}
+        </table>
+
+        <!-- Actions -->
+        <div class="d-flex flex-wrap gap-2">
+          {% if video.status == 'published' %}
+          <a href="{{ url_for('user.watch', v=video['_id']) }}" class="btn btn-sm btn-outline-info" target="_blank">
+            <i class="fas fa-play mr-1"></i>Watch
+          </a>
+          {% endif %}
+          {% if video.status in ['pending','analyzed','flagged'] %}
+          <button class="btn btn-sm btn-spectra" onclick="reanalyzeVideo('{{ video._id }}')">
+            <i class="fas fa-microchip mr-1"></i>Re-Analyze
+          </button>
+          {% endif %}
+          {% if video.status == 'analyzed'
+            and video.get('ai_result',{}).get('verdict') == 'safe'
+            and video.get('ai_result',{}).get('policy',{}).get('compliance_status') == 'passed' %}
+          <button class="btn btn-sm btn-success" onclick="publishVideo('{{ video._id }}')">
+            <i class="fas fa-rocket mr-1"></i>Publish
+          </button>
+          {% endif %}
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteVideo('{{ video._id }}')">
+            <i class="fas fa-trash mr-1"></i>Delete
+          </button>
+        </div>
+
+        <!-- Assign channel -->
+        {% if channels %}
+        <hr class="border-secondary mt-3">
+        <div class="form-group mb-0">
+          <label class="text-muted small">Assign Channel</label>
+          <div class="d-flex gap-2">
+            <select class="form-control admin-input form-control-sm" id="channelSelect">
+              <option value="">— Select channel —</option>
+              {% for c in channels %}
+              <option value="{{ c['_id'] }}" {% if video.get('channel_id') == c['_id'] %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-spectra" onclick="assignChannel('{{ video._id }}')">
+              <i class="fas fa-link"></i>
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: AI Results ─────────────────────────────────────────────────── -->
+  <div class="col-lg-7">
+
+    {% if video.get('ai_result') %}
+    {% set ai = video.ai_result %}
+    <div class="card card-dark card-spectra mb-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-microchip mr-2"></i>AI Safety Report</h3>
+      </div>
+      <div class="card-body">
+
+        <!-- Verdict banner -->
+        <div class="text-center p-3 rounded mb-3
+          {% if ai.verdict == 'safe' %}border border-success{% else %}border border-danger{% endif %}">
+          {% if ai.verdict == 'safe' and ai.get('policy', {}).get('compliance_status') == 'passed' %}
+          <strong class="text-success">SAFE — Passed All Checks</strong>
+          {% elif ai.get('policy', {}).get('compliance_status') != 'violation' %}
+          <strong class="text-warning">REVIEW REQUIRED — Automated analysis cannot verify all applicable rules</strong>
+          {% else %}
+          <i class="fas fa-triangle-exclamation fa-2x text-danger mb-2 d-block"></i>
+          <strong class="text-danger">POLICY VIOLATION — Publishing is blocked</strong>
+          {% endif %}
+        </div>
+
+        {% if ai.get('policy', {}).get('review_reasons') %}
+        <div class="alert alert-warning small">
+          <strong>Human review needed:</strong>
+          <ul class="mb-0 pl-3">
+            {% for reason in ai.policy.review_reasons %}
+            <li>{{ reason }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <!-- Score bars -->
+        <div class="row text-center mb-3">
+          <div class="col-6">
+            <div class="text-success font-weight-bold" style="font-size:1.6rem;">{{ ai.get('overall_safe_pct') if ai.get('overall_safe_pct') is not none else 'N/A' }}{% if ai.get('overall_safe_pct') is not none %}%{% endif %}</div>
+            <small class="text-muted">Evidence without detector flags</small>
+            <div class="progress mt-1" style="height:6px;">
+              <div class="progress-bar bg-success" style="width:{{ ai.get('overall_safe_pct') or 0 }}%"></div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="text-danger font-weight-bold" style="font-size:1.6rem;">{{ ai.get('overall_unsafe_pct') if ai.get('overall_unsafe_pct') is not none else 'N/A' }}{% if ai.get('overall_unsafe_pct') is not none %}%{% endif %}</div>
+            <small class="text-muted">Evidence flagged by detectors</small>
+            <div class="progress mt-1" style="height:6px;">
+              <div class="progress-bar bg-danger" style="width:{{ ai.get('overall_unsafe_pct') or 0 }}%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row text-center mb-3">
+          <div class="col-6">
+            <small class="text-muted">Frames without weapon labels</small>
+            <div class="font-weight-bold">{{ ai.get('visual_safe_pct') if ai.get('visual_safe_pct') is not none else 'N/A' }}{% if ai.get('visual_safe_pct') is not none %}%{% endif %}</div>
+          </div>
+          <div class="col-6">
+            <small class="text-muted">Transcript check</small>
+            <div class="font-weight-bold">{{ ai.get('audio_safe_pct') if ai.get('audio_safe_pct') is not none else 'N/A' }}{% if ai.get('audio_safe_pct') is not none %}%{% endif %}</div>
+          </div>
+        </div>
+
+        <!-- Violations -->
+        {% if ai.get('violations_summary') %}
+        <h6 class="text-warning mt-3 mb-2"><i class="fas fa-exclamation-triangle mr-1"></i>Violations</h6>
+        {% for v in ai.violations_summary %}
+        <div style="border-left:3px solid #dc3545;padding:.4rem .75rem;margin-bottom:.4rem;background:rgba(220,53,69,.08);border-radius:0 6px 6px 0;font-size:.82rem;">
+          <span class="badge {% if v.type == 'visual' %}badge-danger{% else %}badge-warning{% endif %} mr-1">{{ v.type }}</span>
+          {% if v.get('timestamp_sec') is not none %}@{{ '%02d:%02d'|format((v.timestamp_sec|int)//60, (v.timestamp_sec|int)%60) }}{% endif %}
+          — {{ v.description }}
+        </div>
+        {% endfor %}
+        {% else %}
+        {% if ai.get('policy', {}).get('compliance_status') == 'insufficient_evidence' %}
+        <p class="text-warning small mt-2"><i class="fas fa-exclamation-circle mr-1"></i>No direct violation detected; policy review is still required.</p>
+        {% else %}
+        <p class="text-success small mt-2"><i class="fas fa-check-circle mr-1"></i>No violations detected.</p>
+        {% endif %}
+        {% endif %}
+
+        <!-- Policy citations -->
+        {% if ai.get('citations') %}
+        <h6 class="text-spectra mt-3 mb-2"><i class="fas fa-gavel mr-1"></i>Policy Citations</h6>
+        {% for c in ai.citations %}
+        {% if c.violated %}
+        <div style="border-left:3px solid #7c5cd8;padding:.3rem .6rem;margin-bottom:.3rem;background:rgba(124,92,216,.08);border-radius:0 6px 6px 0;font-size:.75rem;">
+          <strong class="text-spectra">{{ c.id }}</strong> — {{ c.text[:120] }}…
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+
+      </div>
+    </div>
+    {% else %}
+    <div class="card card-dark card-spectra">
+      <div class="card-body text-center py-4 text-muted">
+        <i class="fas fa-microchip fa-2x mb-3 d-block"></i>
+        No AI analysis results yet.
+        {% if video.status in ['pending','analyzed','flagged'] %}
+        <br>
+        <button class="btn btn-spectra btn-sm mt-3" onclick="reanalyzeVideo('{{ video._id }}')">
+          <i class="fas fa-play mr-1"></i>Run AI Analysis Now
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div id="actionAlert" class="alert d-none mt-3"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function reanalyzeVideo(videoId) {
+  const alertEl = document.getElementById('actionAlert');
+  alertEl.className = 'alert alert-info mt-3';
+  alertEl.textContent = 'Running AI analysis pipeline… this may take several minutes.';
+  alertEl.classList.remove('d-none');
+  try {
+    const res = await fetch(`/admin/add-video/analyze/${videoId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      alertEl.className = 'alert alert-success mt-3';
+      alertEl.textContent = `Analysis complete. Verdict: ${data.result?.verdict?.toUpperCase() || 'DONE'}. Reloading…`;
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      alertEl.className = 'alert alert-danger mt-3';
+      alertEl.textContent = data.error || 'Analysis failed.';
+    }
+  } catch (e) {
+    alertEl.className = 'alert alert-danger mt-3';
+    alertEl.textContent = 'Network error: ' + e.message;
+  }
+}
+
+async function publishVideo(videoId) {
+  const alertEl = document.getElementById('actionAlert');
+  try {
+    const res = await fetch(`/admin/add-video/publish/${videoId}`, { method: 'POST' });
+    const data = await res.json();
+    alertEl.className = `alert alert-${data.ok ? 'success' : 'danger'} mt-3`;
+    alertEl.textContent = data.message || data.error;
+    alertEl.classList.remove('d-none');
+    if (data.ok) setTimeout(() => location.reload(), 2000);
+  } catch (e) {
+    alertEl.className = 'alert alert-danger mt-3';
+    alertEl.textContent = 'Network error.';
+    alertEl.classList.remove('d-none');
+  }
+}
+
+async function deleteVideo(videoId) {
+  if (!confirm('Permanently delete this video? This cannot be undone.')) return;
+  try {
+    const res = await fetch(`/admin/videos/delete/${videoId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) window.location.href = '/admin/videos';
+    else alert(data.error || 'Delete failed.');
+  } catch (e) { alert('Network error.'); }
+}
+
+async function assignChannel(videoId) {
+  const channelId = document.getElementById('channelSelect').value;
+  if (!channelId) return alert('Please select a channel.');
+  try {
+    const res = await fetch('/admin/videos/assign-channel', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({video_id: videoId, channel_id: channelId}),
+    });
+    const data = await res.json();
+    const alertEl = document.getElementById('actionAlert');
+    alertEl.className = `alert alert-${data.ok ? 'success' : 'danger'} mt-3`;
+    alertEl.textContent = data.ok ? 'Channel assigned.' : (data.error || 'Failed.');
+    alertEl.classList.remove('d-none');
+  } catch (e) { alert('Network error.'); }
+}
+</script>
+{% endblock %}

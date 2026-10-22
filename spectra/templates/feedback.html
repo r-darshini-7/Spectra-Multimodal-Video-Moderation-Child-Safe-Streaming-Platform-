@@ -1,0 +1,15 @@
+{% extends "user/layout.html" %}
+{% block title %}Send Feedback — Spectra.{% endblock %}
+{% block content %}
+<div class="feedback-page">
+  <header class="feedback-page-header">
+    <span class="feedback-page-kicker"><i class="fas fa-comment-dots" aria-hidden="true"></i> SPECTRA SUPPORT</span>
+    <h1>Send Feedback</h1>
+    <p>Report a safety concern, tell us about a problem, or help shape what comes next.</p>
+  </header>
+  <section class="feedback-page-content" aria-label="Feedback form">
+    {% set feedback_scope = "page" %}
+    {% include "user/_feedback_form.html" %}
+  </section>
+</div>
+{% endblock %}

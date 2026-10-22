@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Spectra. Studio{% endblock %}</title>
+  <!-- AdminLTE + Bootstrap -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/spectra.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css', v='upload-shell-2') }}"/>
+  {% block extra_head %}{% endblock %}
+</head>
+{% set is_upload_page = request.endpoint in ['admin.add_video_page', 'user.upload_video_page'] %}
+<body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed sidebar-light-primary accent-spectra {% if request.endpoint == 'admin.dashboard' %}admin-dashboard-page{% endif %} {% if is_upload_page %}admin-upload-page{% endif %}">
+<div class="wrapper">
+
+  {% if not is_upload_page %}
+  <!-- ═══ NAVBAR ═══════════════════════════════════════════════════════════ -->
+  <nav class="main-header navbar navbar-expand navbar-light">
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button" title="Toggle sidebar">
+          <i class="fas fa-bars"></i>
+        </a>
+      </li>
+      <li class="nav-item d-none d-sm-inline-block">
+        <a href="{{ url_for('admin.dashboard') }}" class="nav-link">Dashboard</a>
+      </li>
+    </ul>
+    <ul class="navbar-nav ml-auto">
+      <!-- Light/Dark toggle -->
+      <li class="nav-item">
+        <button type="button" class="btn btn-sm nav-link border-0 admin-theme-toggle" id="themeToggle"
+                title="Toggle Theme" aria-label="Switch to dark theme" aria-pressed="false" onclick="toggleAdminTheme()">
+          <i class="fas fa-moon"></i>
+        </button>
+      </li>
+      <!-- Profile -->
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#">
+          <div class="admin-avatar-sm">{{ session.get('persona_name', 'U')[0].upper() }}</div>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right">
+          <a href="{{ url_for('user.feed') }}" class="dropdown-item">
+            <i class="fas fa-tv mr-2 text-spectra"></i>Viewer Mode
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="{{ url_for('auth.logout') }}" class="dropdown-item text-danger">
+            <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
+          </a>
+        </div>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ═══ SIDEBAR ══════════════════════════════════════════════════════════ -->
+  <aside class="main-sidebar sidebar-light-primary elevation-4 spectra-sidebar">
+    <!-- Brand -->
+    <a href="{{ url_for('admin.dashboard') }}" class="brand-link spectra-brand-link">
+      <span class="brand-text font-weight-bold typewriter-brand">Spectra.</span>
+      <span class="brand-text font-weight-bold">Studio</span>
+    </a>
+
+    <div class="sidebar">
+      <!-- User Panel -->
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="image">
+          <div class="admin-avatar-panel">{{ session.get('persona_name', 'User')[0].upper() }}</div>
+        </div>
+        <div class="info">
+          <a href="#" class="d-block font-weight-bold">{{ session.get('persona_name', 'User') }}</a>
+          <span class="badge badge-success"><i class="fas fa-circle mr-1" style="font-size:0.6rem;"></i>Online</span>
+        </div>
+      </div>
+
+      <!-- Sidebar Menu -->
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+
+          <li class="nav-item">
+            <a href="{{ url_for('admin.dashboard') }}"
+               class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+              <i class="nav-icon fas fa-tachometer-alt"></i>
+              <p>Dashboard</p>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('admin.add_video_page') }}"
+               class="nav-link {% if request.endpoint == 'admin.add_video_page' %}active{% endif %}">
+              <i class="nav-icon fas fa-upload"></i>
+              <p>Add Video</p>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('admin.video_list') }}"
+               class="nav-link {% if request.endpoint in ['admin.video_list','admin.video_detail'] %}active{% endif %}">
+              <i class="nav-icon fas fa-film"></i>
+              <p>Videos</p>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('admin.channel_list') }}"
+               class="nav-link {% if request.endpoint == 'admin.channel_list' %}active{% endif %}">
+              <i class="nav-icon fas fa-satellite-dish"></i>
+              <p>Channels</p>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('admin.audit_log') }}"
+               class="nav-link {% if request.endpoint == 'admin.audit_log' %}active{% endif %}">
+              <i class="nav-icon fas fa-scroll"></i>
+              <p>Audit Log</p>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('user.notifications') }}" class="nav-link">
+              <i class="nav-icon fas fa-bell"></i>
+              <p>Notifications</p>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('admin.settings') }}"
+               class="nav-link {% if request.endpoint == 'admin.settings' %}active{% endif %}">
+              <i class="nav-icon fas fa-sliders-h"></i>
+              <p>Settings</p>
+            </a>
+          </li>
+
+          <li class="nav-item mt-3">
+            <a href="{{ url_for('user.feed') }}" class="nav-link">
+              <i class="nav-icon fas fa-tv"></i>
+              <p>Viewer Mode</p>
+            </a>
+          </li>
+
+        </ul>
+      </nav>
+    </div>
+  </aside>
+  {% else %}
+  <nav class="main-header navbar navbar-expand navbar-light admin-upload-navbar" aria-label="Upload navigation">
+    <a class="admin-upload-close" href="{{ url_for('user.feed') }}" aria-label="Close upload and return to viewer">
+      <i class="fas fa-times" aria-hidden="true"></i>
+    </a>
+  </nav>
+  {% endif %}
+
+  <!-- ═══ MAIN CONTENT WRAPPER ═════════════════════════════════════════════ -->
+  <div class="content-wrapper{% if is_upload_page %} admin-upload-content-wrapper{% endif %}">
+    {% if is_upload_page %}
+    <header class="admin-upload-page-title">
+      <div class="container-fluid">
+        <h1 class="m-0">{% block upload_page_title %}Pre-Flight Studio{% endblock %}</h1>
+      </div>
+    </header>
+    {% endif %}
+    {% if not is_upload_page %}
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">{% block page_title %}Dashboard{% endblock %}</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="{{ url_for('user.feed') if request.endpoint == 'user.upload_video_page' else url_for('admin.dashboard') }}">Home</a></li>
+              {% block breadcrumb %}{% endblock %}
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <section class="content">
+      <div class="container-fluid">
+        {% block content %}{% endblock %}
+      </div>
+    </section>
+  </div>
+
+  {% if not is_upload_page %}
+  <!-- ═══ FOOTER ════════════════════════════════════════════════════════════ -->
+  <footer class="main-footer text-center">
+    <strong>Copyright &copy; 2026 Spectra.</strong> All rights reserved.
+  </footer>
+  {% endif %}
+
+</div><!-- /wrapper -->
+
+{% if not is_upload_page %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

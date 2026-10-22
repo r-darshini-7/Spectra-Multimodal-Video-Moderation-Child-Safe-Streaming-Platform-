@@ -1,0 +1,147 @@
+{% extends "admin/layout.html" %}
+{% block title %}Videos — Spectra. Studio{% endblock %}
+{% block page_title %}<i class="fas fa-film mr-2 text-spectra"></i>Video Management{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Videos</li>{% endblock %}
+
+{% block content %}
+
+<!-- Only published videos are visible in video management. -->
+<ul class="nav nav-pills mb-4 flex-wrap gap-1">
+  <li class="nav-item">
+    <a class="nav-link active bg-spectra" href="{{ url_for('admin.video_list') }}">
+      Published
+      <span class="badge badge-secondary ml-1">{{ counts.get('published', 0) }}</span>
+    </a>
+  </li>
+</ul>
+
+<div class="card card-dark card-spectra">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="card-title"><i class="fas fa-film mr-2"></i>
+      {{ status_filter.capitalize() }} Videos ({{ videos|length }})
+    </h3>
+    <a href="{{ url_for('admin.add_video_page') }}" class="btn btn-spectra btn-sm">
+      <i class="fas fa-plus mr-1"></i>Upload New
+    </a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-dark table-sm table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="width:40%">Title</th>
+            <th>Silo</th>
+            <th>Category</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>Content scan %</th>
+            <th>Views</th>
+            <th>Uploaded</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in videos %}
+          <tr>
+            <td>
+              <a href="{{ url_for('admin.video_detail', video_id=v['_id']) }}" class="d-flex align-items-center gap-2 text-decoration-none">
+                {% if v.get('thumbnail') %}
+                <img src="{{ url_for('static', filename='thumbnails/' + v['thumbnail']) }}"
+                     style="width:50px;height:28px;object-fit:cover;border-radius:4px;" loading="lazy"/>
+                {% else %}
+                <div style="width:50px;height:28px;background:var(--bg-surface);border-radius:4px;display:flex;align-items:center;justify-content:center;">
+                  <i class="fas fa-film text-muted" style="font-size:.7rem;"></i>
+                </div>
+                {% endif %}
+                <div>
+                  <div class="font-weight-semibold text-spectra" style="font-size:.85rem;">{{ v.title[:45] }}</div>
+                  <div class="text-muted" style="font-size:.72rem;">{{ v._id }}</div>
+                </div>
+              </a>
+            </td>
+            <td>
+              <span class="badge silo-badge-sm silo-{{ v.get('age_silo','') }}">
+                {{ v.get('age_silo','—') }}
+              </span>
+            </td>
+            <td class="text-muted small">{{ v.get('category','—') }}</td>
+            <td class="text-muted small">{{ v.get('duration_str','—') }}</td>
+            <td>
+              {% set s = v.get('status','') %}
+              {% if s == 'published' %}<span class="badge badge-success">Published</span>
+              {% elif s == 'flagged' %}<span class="badge badge-danger">Flagged</span>
+              {% elif s == 'transcoding' %}<span class="badge badge-info">Transcoding</span>
+              {% elif s == 'analyzed' %}<span class="badge badge-warning">Analyzed</span>
+              {% elif s == 'pending' %}<span class="badge badge-secondary">Pending</span>
+              {% else %}<span class="badge badge-secondary">{{ s }}</span>{% endif %}
+            </td>
+            <td>
+              {% if v.get('ai_result') %}
+                {% set pct = v.ai_result.get('overall_safe_pct') %}
+                {% if pct is not none %}
+                <span class="{% if pct >= 70 %}text-success{% else %}text-danger{% endif %} font-weight-bold">
+                  {{ pct }}%
+                </span>
+                {% else %}<span class="text-muted">N/A</span>{% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-muted small">{{ '{:,}'.format(v.get('views',0)) }}</td>
+            <td class="text-muted small" style="white-space:nowrap;">
+              {{ v.get('created_at','').strftime('%d %b %Y') if v.get('created_at') else '—' }}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                {% if v.get('status') == 'published' %}
+                <a href="{{ url_for('user.watch', v=v['_id']) }}"
+                   class="btn btn-xs btn-outline-info" title="Watch" target="_blank">
+                  <i class="fas fa-play"></i>
+                </a>
+                {% endif %}
+                <button class="btn btn-xs btn-outline-danger"
+                        onclick="deleteVideo('{{ v['_id'] }}', this)" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">
+              No videos have been published.
+              <a href="{{ url_for('admin.add_video_page') }}" class="text-spectra ml-1">Upload one →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function deleteVideo(videoId, btn) {
+  if (!confirm('Permanently delete this video and all its files? This cannot be undone.')) return;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  try {
+    const res = await fetch(`/admin/videos/delete/${videoId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      btn.closest('tr').style.opacity = '0.3';
+      btn.closest('tr').style.pointerEvents = 'none';
+    } else {
+      alert(data.error || 'Delete failed.');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-trash"></i>';
+    }
+  } catch (e) {
+    alert('Network error.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-trash"></i>';
+  }
+}
+</script>
+{% endblock %}

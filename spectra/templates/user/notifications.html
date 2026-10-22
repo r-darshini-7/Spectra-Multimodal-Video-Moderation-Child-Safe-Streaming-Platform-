@@ -1,0 +1,52 @@
+{% extends "user/layout.html" %}
+{% block title %}Notifications — Spectra.{% endblock %}
+{% block content %}
+<div class="feed-container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <h4 class="mb-0"><i class="fas fa-bell me-2 text-spectra"></i>Notifications</h4>
+    {% if notifications %}
+    <button class="btn btn-outline-spectra btn-sm" onclick="markAllRead()">
+      <i class="fas fa-check-double me-1"></i>Mark all read
+    </button>
+    {% endif %}
+  </div>
+  {% if notifications %}
+  <div class="list-group">
+    {% for n in notifications %}
+    <div class="list-group-item list-group-item-action notif-item">
+      <div class="d-flex gap-3 align-items-start">
+        <div class="notif-icon"><i class="fas fa-bell text-spectra"></i></div>
+        <div class="flex-grow-1">
+          {% if n.get('link') %}
+          <a class="text-decoration-none" href="{{ n.link }}">
+          {% endif %}
+          <p class="mb-1 small">{{ n.get('message', 'New activity') }}</p>
+          {% if n.get('link') %}
+          </a>
+          {% endif %}
+          <small class="text-muted">{{ n.get('created_at', '') }}</small>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state text-center py-5">
+    <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+    <p class="text-muted">No notifications yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function markAllRead() {
+  try {
+    await fetch('/api/notifications/mark-read', { method: 'POST' });
+    document.getElementById('notifBadge')?.classList.add('d-none');
+    document.querySelectorAll('.notif-item').forEach(el => el.style.opacity = '0.6');
+  } catch(e) {}
+}
+</script>
+{% endblock %}

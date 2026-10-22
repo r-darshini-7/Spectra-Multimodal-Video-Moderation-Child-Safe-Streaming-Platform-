@@ -1,0 +1,144 @@
+{% extends "user/layout.html" %}
+{% block title %}Terms of Service — Spectra.{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/terms.css') }}"/>
+{% endblock %}
+
+{% set terms_sections = [
+  {"id": "acceptance", "title": "Acceptance of Terms & Legal Authority", "clauses": [
+    ("Binding Agreement", "By accessing, registering an account on, or interacting with Spectra (the Platform), users, content creators, and legal guardians agree to be bound by these Terms of Service."),
+    ("Legal Age & Authority", "Direct registration is restricted to individuals aged 18 or older, or the age of legal majority in their governing jurisdiction. Minors under 18 may only access the platform through an authorized, age-gated sub-profile created and managed by an adult account holder.")
+  ]},
+  {"id": "service", "title": "Platform Purpose & Scope of Service", "clauses": [
+    ("Service Definition", "Spectra provides an AI-augmented video-on-demand and streaming service featuring automated multimodal ingestion, non-destructive content remediation, and role-gated media delivery."),
+    ("Service Availability", "The platform reserves the right to modify, suspend, upgrade, or deprecate features, playback tiers, and ingestion tools without prior liability.")
+  ]},
+  {"id": "accounts", "title": "Account Hierarchy & Parental Controls", "clauses": [
+    ("Master Account & Sub-Profiles", "The primary account holder manages the creation, configuration, and monitoring of child profiles across designated safety tiers: Preschool, Kids, Tweens, and Teens."),
+    ("PIN Confidentiality", "Parents and guardians are solely responsible for keeping the 5-digit master authorization PIN secure. Any actions, overrides, or tier shifts authorized via the PIN on shared family hardware are presumed authorized by the guardian."),
+    ("Account Recovery Gateways", "Password reset links and PIN recovery codes are sent only to the verified email address tied to the account.")
+  ]},
+  {"id": "ai-ingestion", "title": "Mandatory Multimodal AI Ingestion Consent", "clauses": [
+    ("Automated Processing", "All creators uploading media explicitly consent to automated, multimodal content evaluation prior to public distribution or indexing."),
+    ("Parallel Signal Inspection", "Ingestion pipelines deconstruct uploads to evaluate visual frames using YOLOv11, on-screen text and burned-in captions using OCR, audio transcripts using Whisper, and semantic sentiment using BERT against safety policies."),
+    ("Vector Policy Retrieval", "Content matches are dynamically validated against platform standards stored within ChromaDB vector retrieval layers without requiring model retraining.")
+  ]},
+  {"id": "remediation", "title": "Non-Destructive Remediation License", "clauses": [
+    ("Automated Remediation Rights", "Creators grant Spectra a non-exclusive, worldwide, royalty-free license to apply automated, non-destructive alterations to uploaded media."),
+    ("Remediation Techniques", "Remediation actions include, but are not limited to, spatial Gaussian blurring, contextual tone inpainting (chimes, bleeps, or room tones), photosensitive luminance dampening, and acoustic decibel compression."),
+    ("Preservation of Raw Media", "Remediation is non-destructive; it modifies the public streaming delivery layers (HLS segments) while preserving the creator's underlying original media for audit and appeal purposes.")
+  ]},
+  {"id": "age-routing", "title": "Age-Silo Routing & Dynamic Silo Fallback", "clauses": [
+    ("Audience Silos", "Media is categorized into distinct audience brackets to prevent cross-tier exposure."),
+    ("Dynamic Re-Routing", "If an adult-rated (18+) or teen-rated video undergoes successful automated remediation, Spectra reserves the right to re-evaluate its compliance score and down-rank the stream into younger audience feeds (for example, Teens 13–17) rather than taking it down.")
+  ]},
+  {"id": "child-protection", "title": "Child Protection & Anti-Exploitation Zero Tolerance", "clauses": [
+    ("Zero Tolerance Mandate", "Spectra strictly bans any content involving child sexual abuse material (CSAM), child grooming, predatory contact, non-consensual imagery of minors, or dangerous juvenile challenges."),
+    ("Facial Detection Triggers", "The detection of child faces or minors in non-educational or mature (18+) content categories triggers immediate administrative flags, session quarantine, and mandatory referral to regional and international child protection law enforcement agencies.")
+  ]},
+  {"id": "biological-safety", "title": "Physiological & Biological Safety Standards", "clauses": [
+    ("Photosensitivity Compliance", "In compliance with international broadcast standards (ITU-R BT.1702), visual strobing and rapid luminance changes exceeding 3 Hz are automatically dampened to protect viewers susceptible to photosensitive epileptic seizures."),
+    ("Auditory Protection", "Uploads exhibiting rapid, aggressive acoustic spikes (volume leaps greater than 20 dB within 200 ms) are subject to dynamic range compression to protect young viewers wearing headphones from auditory shock.")
+  ]},
+  {"id": "delivery", "title": "Content Delivery & Adaptive Streaming", "clauses": [
+    ("Adaptive Bitrate HLS", "All sanitized media is transcoded and packaged into HTTP Live Streaming (HLS) formats (.m3u8 playlists and .ts transport segments) with variable bitrate encoding."),
+    ("Scene Skip Markers", "Media containers may include synchronized cue markers (WebVTT) that allow the video player to automatically fast-forward through remediated timestamps when Auto-Skip is activated by a parent.")
+  ]},
+  {"id": "prohibited-conduct", "title": "Prohibited Creator Conduct & Evasion Penalties", "clauses": [
+    ("Adversarial Evasion", "Users and creators must not attempt to evade, poison, or confuse the AI moderation engine (for example, using steganography, intentional audio pitch-shifting, visual watermarking distortions, or rapid frame-splicing)."),
+    ("Automated Extraction", "Unauthorized scraping, reverse-engineering of inference pipelines, or extracting model weights and ChromaDB policy embeddings is strictly prohibited."),
+    ("Enforcement", "Violations of this section result in immediate account termination, blacklisting of creator credentials, and permanent IP/device bans.")
+  ]},
+  {"id": "appeals", "title": "Explainable AI (XAI) & Creator Appeals", "clauses": [
+    ("Automated Fix Reports", "Creators whose videos are remediated or down-ranked receive a timestamped Fix Report detailing the flagged visual bounding boxes, toxic speech transcripts, and retrieved policy rules."),
+    ("Appeals Process", "Creators are granted a one-click appeal submission hook per remediated upload. Appeals are routed to human safety auditors for binding manual resolution within a reasonable administrative timeframe.")
+  ]},
+  {"id": "intellectual-property", "title": "Intellectual Property & Digital Rights", "clauses": [
+    ("Ownership of Uploaded Works", "Content creators retain original copyright and ownership of the creative media they submit to Spectra."),
+    ("Platform Assets", "The Spectra brand name, proprietary moderation architectures, UI designs, codebases, and custom neural pipelines are the exclusive intellectual property of Spectra."),
+    ("DMCA / Copyright Notices", "Copyright holders may submit takedown notices for infringing media, which will be processed according to standard statutory copyright safe-harbor procedures.")
+  ]},
+  {"id": "privacy", "title": "Data Privacy & Regulatory Compliance (COPPA & GDPR-K)", "clauses": [
+    ("Underage Data Restrictions", "In accordance with the Children's Online Privacy Protection Act (COPPA) and GDPR-Kids, Spectra does not collect, harvest, track, or sell personally identifiable information or behavioral advertising profiles for users on child-safe tiers."),
+    ("Audit Trails", "Remediation histories, processing timestamps, and cryptographic SHA-256 hashes are stored in secure audit databases to maintain demonstrable proof of regulatory compliance.")
+  ]},
+  {"id": "liability", "title": "Limitation of Liability & Warranty Disclaimer", "clauses": [
+    ("As-Is Service Provision", "Spectra provides its streaming and AI filtering tools on an as-is and as-available basis."),
+    ("Algorithmic Fallibility", "While multimodal neural networks reduce exposure to harmful content, no automated system is 100% infallible. Spectra does not warrant that the moderation pipeline will catch all potential violations or that remediated feeds will be completely free of human error."),
+    ("Damage Cap", "To the maximum extent permitted by law, Spectra is not liable for indirect, incidental, or consequential damages resulting from platform usage.")
+  ]},
+  {"id": "indemnification", "title": "Indemnification", "clauses": [
+    ("User Responsibilities", "Creators and adult users agree to defend, indemnify, and hold harmless Spectra, its developers, affiliates, and licensors against any claims, liabilities, damages, or regulatory fines arising from their violation of these terms or infringement of third-party rights.")
+  ]},
+  {"id": "disputes", "title": "Dispute Resolution, Governing Law & Amendments", "clauses": [
+    ("Governing Law", "These terms are governed by and construed in accordance with the applicable jurisdictional laws governing online safety and digital communications."),
+    ("Arbitration & Resolution", "Any formal disputes arising from these terms will first be addressed through informal administrative mediation before escalating to binding individual arbitration."),
+    ("Updates to Terms", "Spectra reserves the right to revise these Terms of Service periodically. Continued usage of the platform following published revisions constitutes acceptance of the updated terms.")
+  ]}
+] %}
+
+{% block content %}
+<div class="terms-page">
+  <header class="terms-header">
+    <div>
+      <span class="terms-kicker"><i class="fas fa-file-contract" aria-hidden="true"></i> SPECTRA LEGAL</span>
+      <h1>Terms of Service</h1>
+      <p>Terms governing access to Spectra and use of its services.</p>
+    </div>
+    <button class="terms-print-button" id="terms-print" type="button" aria-label="Print terms of service" title="Print terms">
+      <i class="fas fa-print" aria-hidden="true"></i><span>Print</span>
+    </button>
+  </header>
+
+  <div class="terms-layout">
+    <aside class="terms-sidebar" aria-label="Terms navigation">
+      <div class="terms-sidebar-sticky">
+        <label class="terms-search-label" for="terms-search">Search terms</label>
+        <div class="terms-search-wrap">
+          <i class="fas fa-search" aria-hidden="true"></i>
+          <input id="terms-search" type="search" placeholder="Find a topic" autocomplete="off" aria-controls="terms-sections"/>
+          <button id="terms-search-clear" type="button" aria-label="Clear search" hidden><i class="fas fa-times" aria-hidden="true"></i></button>
+        </div>
+        <p class="terms-search-count" id="terms-search-count" aria-live="polite">16 sections</p>
+        <nav class="terms-toc" id="terms-toc" aria-label="Table of contents">
+          {% for section in terms_sections %}
+          <a class="terms-toc-link{% if loop.first %} is-active{% endif %}" href="#{{ section.id }}" data-terms-link="{{ section.id }}"{% if loop.first %} aria-current="location"{% endif %}>
+            <span class="terms-toc-number">{{ "%02d"|format(loop.index) }}</span>
+            <span>{{ section.title }}</span>
+          </a>
+          {% endfor %}
+        </nav>
+      </div>
+    </aside>
+
+    <article class="terms-document" id="terms-sections" aria-label="Terms of Service">
+      <div class="terms-introduction">
+        <p>Please review these Terms of Service carefully. They describe the rules, responsibilities, and limits that apply when using Spectra.</p>
+      </div>
+      {% for section in terms_sections %}
+      <section class="terms-section" id="{{ section.id }}" data-terms-section aria-labelledby="heading-{{ section.id }}">
+        <header class="terms-section-header">
+          <span class="terms-section-number">{{ "%02d"|format(loop.index) }}</span>
+          <h2 id="heading-{{ section.id }}">{{ section.title }}</h2>
+        </header>
+        {% for clause in section["clauses"] %}
+        <div class="terms-clause">
+          <h3>{{ clause[0] }}</h3>
+          <p>{{ clause[1] }}</p>
+        </div>
+        {% endfor %}
+      </section>
+      {% endfor %}
+      <p class="terms-endnote">End of Terms of Service</p>
+      <div class="terms-no-results" id="terms-no-results" hidden>
+        <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+        <p>No matching sections. Try another search term.</p>
+      </div>
+    </article>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/terms.js') }}" defer></script>
+{% endblock %}

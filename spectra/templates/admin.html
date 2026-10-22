@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta name="admin-user-id" content="{{ session.get('admin_user_id', '') }}">
+    <title>Spectra Admin Operations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/spectra.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css', v='admin-shell-8') }}">
+  </head>
+  <body class="user-layout admin-console-body">
+    <nav class="spectra-navbar navbar fixed-top admin-operations-navbar" aria-label="Admin toolbar">
+      <div class="admin-navbar-main">
+        <div class="admin-navbar-brand">
+          <button class="navbar-toggle-btn" id="sidebarToggle" type="button" title="Toggle navigation" aria-label="Toggle navigation" aria-expanded="true">
+            <i class="fas fa-bars"></i>
+          </button>
+          <a href="{{ url_for('admin_ops.console') }}" class="navbar-brand-spectra">
+            <span class="brand-text admin-brand-name">Spectra.</span>
+            <span class="admin-brand-suffix">Admin</span>
+          </a>
+        </div>
+
+        <form class="admin-global-search search-wrapper" id="adminSearchForm" role="search">
+          <button class="voice-search-btn" id="voiceSearchBtn" type="button" title="Voice search" aria-label="Voice search">
+            <i class="fas fa-microphone"></i>
+          </button>
+          <input class="search-input" id="searchInput" type="search" placeholder="Search operations…" autocomplete="off" aria-label="Search admin console">
+          <button class="search-btn" id="searchBtn" type="submit" title="Search" aria-label="Search">
+            <i class="fas fa-search"></i>
+          </button>
+        </form>
+
+        <div class="admin-navbar-actions">
+          <button class="navbar-icon-btn admin-mobile-search-toggle" id="adminMobileSearchToggle" type="button" title="Search" aria-label="Open search">
+            <i class="fas fa-search"></i>
+          </button>
+          <button class="navbar-icon-btn" id="themeToggleBtn" type="button" title="Toggle light/dark theme" aria-label="Switch to dark theme" aria-pressed="false">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <button class="navbar-icon-btn position-relative" id="adminNotifications" type="button" data-tab="feedback" title="Open feedback inbox" aria-label="Open feedback inbox">
+            <i class="fas fa-bell"></i><span class="notif-badge d-none" id="notifBadge"></span>
+          </button>
+          <div class="admin-profile">
+            <button class="navbar-avatar-btn" id="adminProfileToggle" type="button" aria-expanded="false" aria-controls="adminProfileMenu" aria-label="Super-admin account menu">
+              <span class="nav-avatar">{{ (admin_identity or 'Admin')[0]|upper }}</span>
+            </button>
+            <div class="admin-profile-menu hidden" id="adminProfileMenu">
+              <div class="admin-profile-summary">
+                <strong>{{ admin_identity }}</strong>
+                <span><i class="status-dot"></i> Super-admin session</span>
+              </div>
+              <form method="post" action="{{ url_for('admin_ops.viewer_mode') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="admin-profile-link" type="submit"><i class="fas fa-tv"></i> Switch to viewer mode</button>
+              </form>
+              <button type="button" class="admin-profile-link" data-tab="users"><i class="fas fa-users"></i> User management</button>
+              <form method="post" action="{{ url_for('admin_ops.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="admin-profile-link sign-out-link" type="submit"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <form class="admin-mobile-search-bar" id="adminMobileSearchBar" role="search">
+        <button class="voice-search-btn" id="mobileVoiceSearchBtn" type="button" title="Voice search" aria-label="Voice search">
+          <i class="fas fa-microphone"></i>
+        </button>
+        <input class="search-input" id="mobileSearchInput" type="search" placeholder="Search operations…" aria-label="Search admin console">
+        <button class="search-btn" id="mobileSearchBtn" type="submit" title="Search" aria-label="Search">
+          <i class="fas fa-search"></i>
+        </button>
+      </form>
+    </nav>
+
+    <aside class="sidebar-drawer admin-sidebar-drawer" id="sidebarDrawer" aria-label="Admin navigation">
+      <div class="sidebar-inner">
+        <div class="sidebar-section-label">Operations</div>
+        <nav class="sidebar-section admin-sidebar-section" aria-label="Admin modules">
+          <button class="sidebar-item admin-tab-link active" type="button" data-tab="dashboard"><i class="fa-solid fa-gauge"></i><span>Dashboard</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="analytics"><i class="fa-solid fa-chart-line"></i><span>View Analytics</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="moderation"><i class="fa-solid fa-shield-halved"></i><span>Moderation Review</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="feedback"><i class="fa-solid fa-message"></i><span>Feedbacks &amp; Reports</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="policies"><i class="fa-solid fa-file-lines"></i><span>Policy Rules</span></button>
+          <button class="sidebar-item admin-tab-link" type="button" data-tab="users"><i class="fa-solid fa-users"></i><span>User Management</span></button>
+        </nav>
+        <div class="sidebar-divider"></div>
+        <div class="admin-sidebar-session"><span class="status-dot"></span><span>Admin session protected</span></div>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <main class="main-content admin-main-content">
+        <div class="toast-region" id="toastRegion" role="status" aria-live="polite"></div>
+        <section class="tab-panel active" id="dashboard-panel" aria-labelledby="dashboard-title">
+          <div class="page-header-row"><div><div class="eyebrow">Overview</div><h1 id="dashboard-title">Operations dashboard</h1></div><span class="live-label"><span class="status-dot"></span>Data refreshes every 30 seconds</span></div>
+          <div class="kpi-grid">
+            <article class="metric-card accent-blue"><div class="metric-meta">Published videos</div><div class="metric-value" id="kpiIngested">—</div><div class="metric-trend" id="kpiDaily">Today: —</div></article>
+            <article class="metric-card accent-green"><div class="metric-meta">Auto-remediated streams</div><div class="metric-value" id="kpiRemediated">—</div><div class="metric-trend">Blur / audio remediation</div></article>
+            <article class="metric-card accent-purple"><div class="metric-meta">Safe direct bypasses</div><div class="metric-value" id="kpiClean">—</div><div class="metric-trend">Published without alteration</div></article>
+            <article class="metric-card accent-orange"><div class="metric-meta">Pending human review</div><div class="metric-value" id="kpiPending">Hidden</div><div class="metric-trend warning">Unpublished videos are hidden</div></article>
+          </div>
+          <div class="content-grid two-column">
+            <article class="panel-card">
+              <div class="panel-header"><h2>Recently published videos</h2><span class="badge neutral">Latest 5</span></div>
+              <div class="table-wrap recent-submissions-wrap"><table class="recent-submissions-table"><thead><tr><th>Title</th><th>Creator</th><th>Target silo</th><th>Status</th><th>Action</th></tr></thead><tbody id="recentVideos"><tr><td colspan="5" class="empty-state">Loading submissions…</td></tbody></table></div>
+            </article>
+            <article class="panel-card">
+              <div class="panel-header"><h2>Pipeline activity</h2><span class="badge success">MongoDB</span></div>
+              <div class="pipeline-monitor">
+                <div class="pipeline-item"><label>Inference queue</label><div class="progress"><span id="inferenceProgress"></span></div><small id="inferenceCount">—</small></div>
+                <div class="pipeline-item"><label>Human review</label><div class="progress"><span id="reviewProgress"></span></div><small id="reviewCount">—</small></div>
+                <div class="pipeline-item"><label>Publish preparation</label><div class="progress"><span id="publishProgress"></span></div><small id="publishCount">—</small></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="analytics-panel" aria-labelledby="analytics-title">
+          <div class="page-header-row"><div><div class="eyebrow">Insights</div><h1 id="analytics-title">View analytics</h1></div></div>
+          <div class="analytics-grid">
+            <article class="panel-card chart-card"><h2>Violations by modality</h2><div class="chart-visualization"><canvas id="violationsChart" aria-label="Violations by modality chart"></canvas><div class="chart-empty-state hidden" id="modalitiesEmpty">No violations recorded for this period</div></div></article>
+            <article class="panel-card chart-card"><h2>7-day published vs. remediation</h2><div class="chart-visualization"><canvas id="ingestionChart" aria-label="Weekly published videos and remediation chart"></canvas></div></article>
+            <article class="panel-card chart-card"><h2>Published catalog by age silo</h2><div class="chart-visualization"><canvas id="siloChart" aria-label="Published videos by age silo chart"></canvas></div></article>
+            <article class="panel-card latency-card"><h2>Inference latency</h2><p class="muted">Configured benchmark estimates; live instrumentation is not currently exposed by the workers.</p><div class="latency-list">
+              <div><span>YOLOv11</span><strong id="latencyYolo">—</strong></div><div><span>Whisper</span><strong id="latencyWhisper">—</strong></div><div><span>ChromaDB</span><strong id="latencyChroma">—</strong></div>
+            </div></article>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="moderation-panel" aria-labelledby="moderation-title">
+          <div class="page-header-row"><div><div class="eyebrow">Human in the loop</div><h1 id="moderation-title">Moderation review</h1></div></div>
+          <div class="moderation-layout">
+            <article class="panel-card"><div class="panel-header"><h2>Review queue</h2><select id="moderationSelect" aria-label="Select video from moderation queue"><option value="">Loading queue…</option></select></div>
+              <div class="dual-player">
+                <div class="video-pane"><div class="video-header">Raw upload preview</div><div class="video-frame"><video id="rawPlayer" controls preload="metadata"></video><canvas id="rawOverlay" class="bbox-overlay" aria-hidden="true"></canvas></div></div>
+                <div class="video-pane"><div class="video-header">Sanitized stream</div><video id="sanitizedPlayer" controls preload="metadata"></video></div>
+              </div>
+              <label class="scrubber-label" for="syncScrubber">Synchronized playback</label><input id="syncScrubber" type="range" min="0" max="1000" value="0" class="scrubber">
+              <div class="segment-track" id="violationSegments" aria-label="Violation segments"></div>
+            </article>
+            <article class="panel-card"><div class="panel-header"><h2>Violation breakdown</h2></div><ul class="violation-list" id="violationList"><li class="empty-state">Choose a video to inspect flagged segments.</li></ul>
+              <div class="action-buttons"><button class="primary-button" type="button" data-moderation-action="approve_remediation">Approve remediation</button><button class="secondary-button" type="button" data-moderation-action="restore_original">Restore original</button><button class="danger-button" type="button" data-moderation-action="quarantine">Quarantine video</button></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="feedback-panel" aria-labelledby="feedback-title">
+          <div class="page-header-row"><div><div class="eyebrow">Community signals</div><h1 id="feedback-title">Feedbacks &amp; reports</h1></div></div>
+          <article class="panel-card"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Reporter</th><th>Category</th><th>Video ID</th><th>Rating</th><th>Status</th><th>Action</th></tr></thead><tbody id="feedbackRows"><tr><td colspan="7" class="empty-state">Loading feedback…</td></tr></tbody></table></div></article>
+        </section>
+
+        <section class="tab-panel" id="policies-panel" aria-labelledby="policies-title">
+          <div class="page-header-row"><div><div class="eyebrow">Guidelines</div><h1 id="policies-title">Policy rules</h1></div><button class="primary-button" type="button" id="openRuleModal">Add new rule</button></div>
+          <article class="panel-card"><div class="table-wrap"><table><thead><tr><th>Rule name</th><th>Category</th><th>Age silo</th><th>Threshold</th><th>Active</th></tr></thead><tbody id="policyRows"><tr><td colspan="5" class="empty-state">Loading policy rules…</td></tr></tbody></table></div></article>
+        </section>
+
+        <section class="tab-panel" id="users-panel" aria-labelledby="users-title">
+          <div class="page-header-row"><div><div class="eyebrow">Access control</div><h1 id="users-title">User management</h1></div></div>
+          <article class="panel-card"><div class="table-wrap"><table><thead><tr><th>User ID</th><th>Email</th><th>Role</th><th>Child profiles</th><th>Status</th><th>Actions</th></tr></thead><tbody id="userRows"><tr><td colspan="6" class="empty-state">Loading users…</td></tr></tbody></table></div></article>
+        </section>
+      <nav class="mobile-bottom-nav admin-mobile-bottom-nav" aria-label="Quick admin navigation">
+        <button class="mobile-nav-item active" type="button" data-tab="dashboard"><i class="fas fa-gauge"></i><span>Home</span></button>
+        <button class="mobile-nav-item" type="button" data-tab="moderation"><i class="fas fa-shield-halved"></i><span>Review</span></button>
+        <button class="mobile-nav-item" type="button" data-tab="feedback"><i class="fas fa-bell"></i><span>Inbox</span></button>
+      </nav>
+    </main>
+
+    <div class="modal-backdrop hidden" id="ruleModal" role="dialog" aria-modal="true" aria-labelledby="ruleModalTitle">
+      <div class="modal-card"><div class="modal-header"><h2 id="ruleModalTitle">Add policy rule</h2><button class="close-button" type="button" data-close="ruleModal" aria-label="Close">×</button></div>
+        <form class="modal-form" id="ruleForm">
+          <label><span>Rule title</span><input type="text" name="title" maxlength="120" required></label>
+          <label><span>Description / keywords</span><textarea name="description" maxlength="2000" required></textarea></label>
+          <label><span>Category</span><select name="category"><option value="visual_object">Visual object</option><option value="toxicity">Toxicity</option><option value="acoustic">Acoustic</option><option value="photosensitivity">Photosensitivity</option></select></label>
+          <label><span>Target age silo</span><select name="age_silo"><option value="preschool">Preschool</option><option value="kids">Kids</option><option value="tweens">Tweens</option><option value="teens">Teens</option><option value="unrestricted">Unrestricted</option></select></label>
+          <label><span>Remediation action</span><select name="action"><option value="blur">Blur</option><option value="bleep">Bleep</option><option value="reject">Reject</option></select></label>
+          <div class="modal-actions"><button class="secondary-button" type="button" data-close="ruleModal">Cancel</button><button class="primary-button" type="submit">Save rule</button></div>
+        </form>
+      </div>
+    </div>
+    <div class="modal-backdrop hidden" id="feedbackModal" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle">
+      <div class="modal-card"><div class="modal-header"><h2 id="feedbackModalTitle">Feedback inspector</h2><button class="close-button" type="button" data-close="feedbackModal" aria-label="Close">×</button></div><div id="feedbackDetails" class="feedback-details"></div>
+        <div class="modal-actions"><select id="feedbackStatus"><option value="OPEN">New</option><option value="IN_REVIEW">In review</option><option value="RESOLVED">Resolved</option></select><button class="primary-button" type="button" id="saveFeedbackStatus">Save status</button></div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/admin.js', v='published-catalog-1') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Spectra. — Safer family viewing{% endblock %}
+{% block body_class %}welcome-page{% endblock %}
+{% block page_controls %}{% endblock %}
+{% block extra_head %}
+<meta name="description" content="A brighter, safer place for families to watch together."/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/welcome.css') }}"/>
+{% endblock %}
+
+{% block body %}
+<header class="welcome-nav">
+  <a class="welcome-brand" href="{{ url_for('user.index') }}" aria-label="Spectra home">
+    <span class="welcome-brand-mark" aria-hidden="true">S</span>
+    <span>Spectra.</span>
+  </a>
+  <nav class="welcome-nav-actions" aria-label="Account">
+    <a class="welcome-sign-in" href="{{ url_for('auth.login_page') }}">Sign in</a>
+  </nav>
+</header>
+
+<div class="welcome-rainbow" aria-hidden="true">
+  <span></span><span></span><span></span><span></span><span></span><span></span>
+</div>
+
+<main>
+  <section class="welcome-hero" aria-labelledby="welcome-title">
+    <div class="welcome-hero-copy">
+      <div class="welcome-emblem" aria-hidden="true"><span>S</span></div>
+      <p class="welcome-eyebrow">SPECTRA</p>
+      <h1 id="welcome-title" aria-label="Welcome to Spectra.">
+        <span class="welcome-title-intro">Welcome to</span>
+        <span class="welcome-title-name" aria-hidden="true"><span>S</span><span>p</span><span>e</span><span>c</span><span>t</span><span>r</span><span>a</span><span>.</span></span>
+      </h1>
+      <p class="welcome-description">Discover videos, connect with your family, and make every watch feel a little safer.</p>
+      <div class="welcome-hero-actions">
+        <a class="welcome-primary-action" href="{{ url_for('auth.login_page') }}" aria-label="Sign in" title="Sign in">
+          <span class="welcome-sr-only">Sign in</span>
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="welcome-principles" aria-label="The Spectra experience">
+    <article>
+      <span class="welcome-principle-index">01</span>
+      <div><h3>Made for every age</h3><p>Separate family profiles help keep each viewing experience age-aware.</p></div>
+    </article>
+    <article>
+      <span class="welcome-principle-index">02</span>
+      <div><h3>Thoughtful by design</h3><p>Safety tools give families more control over how videos are watched.</p></div>
+    </article>
+    <article>
+      <span class="welcome-principle-index">03</span>
+      <div><h3>Room to explore</h3><p>Find stories, songs, and learning videos for your household.</p></div>
+    </article>
+  </section>
+</main>
+
+<footer class="welcome-footer">
+  <span>Spectra. <span aria-hidden="true">·</span> Safer family viewing</span>
+  <a href="{{ url_for('user.terms_page') }}">Terms of Service</a>
+</footer>
+{% endblock %}

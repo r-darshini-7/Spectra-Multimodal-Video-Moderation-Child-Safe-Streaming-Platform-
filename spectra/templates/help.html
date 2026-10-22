@@ -1,0 +1,139 @@
+{% extends "user/layout.html" %}
+{% block title %}Help & FAQ — Spectra.{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/help.css') }}"/>
+{% endblock %}
+
+{% set faq_categories = [
+  {"id": "getting-started", "name": "Getting Started & Account Basics", "items": [
+    ("What is Spectra?", "Spectra is a child-safe video streaming platform that automatically inspects and sanitizes video frames and audio to ensure content is safe for families and children."),
+    ("How do I create an account?", "Click the Sign In button at the top right of the homepage, choose Register, enter your name, email, and password, and set up your family profile."),
+    ("What should I do if I forget my password or PIN?", "For a forgotten password, click Forgot Password on the sign-in page and enter your registered email address. We’ll email a one-time reset link that expires after 30 minutes. PIN recovery codes are also sent to the registered email address."),
+    ("How do I change my profile picture or account name?", "Go to Settings from the sidebar, select Edit Profile, and update your display name, avatar, or contact information."),
+    ("Can I use Spectra on multiple devices simultaneously?", "Yes. You can log into your account across laptops, tablets, smart TVs, and mobile phones; your custom profiles, watch progress, and PIN settings sync across all sessions."),
+    ("How do I delete my account and personal data?", "Navigate to Settings > Account & Privacy, scroll to the bottom, and click Delete Account. This permanently purges your watch history, saved playlists, and account records.")
+  ]},
+  {"id": "watching", "name": "Watching Videos & Navigation", "items": [
+    ("How does infinite scroll work on the home feed?", "As you scroll down toward the bottom of the page, new recommended videos load automatically without requiring manual page refreshing or clicking pagination buttons."),
+    ("How do I search for specific topics or creators?", "Enter keywords, video titles, or channel names into the top search bar and press Enter. The results automatically filter to show only videos approved for your active age profile."),
+    ("Can I save videos to watch later?", "Yes. Click the Save or Add to Playlist icon beneath any video card to store it in your private library."),
+    ("How do I share a video with someone else?", "Click the Share button below the video player to copy the direct URL link or share it via messaging apps."),
+    ("Why do some videos recommend related content on the sidebar?", "Spectra uses a personalized recommendation engine that suggests related educational and entertaining videos based on the tags and topics of the video you are currently watching."),
+    ("Where can I see the videos I previously watched?", "Click History in the left sidebar to view a chronological record of your recently played videos.")
+  ]},
+  {"id": "player", "name": "Video Player & Audio Features", "items": [
+    ("Why are certain words bleeped or muted?", "If a video contains inappropriate words, Spectra's moderation pipeline replaces the audio with a gentle tone or clean ambient sound so the video remains safe to hear."),
+    ("Why are certain objects or scenes blurred?", "When a video contains sensitive items (such as weapons or aggressive visuals), our system applies a smooth blur over that specific area while allowing the rest of the video to play normally."),
+    ("What is the difference between Blurring and Auto-Skip mode?", "Blurring keeps the scene playing while covering the flagged visual. Auto-Skip automatically fast-forwards past the flagged 3-5 seconds directly to the next safe moment."),
+    ("Can I customize the bleep sound used for muted words?", "Yes. In Audio Settings, you can choose between a standard 1 kHz bleep tone, a soft notification chime, or a silent ambient room tone."),
+    ("How do I turn on subtitles or closed captions?", "Click the CC button at the bottom right corner of the video player to display synchronized, accurate closed captions."),
+    ("Can I adjust video resolution and playback speed?", "Yes. Click the Gear (Settings) icon in the video player to adjust resolution (from 360p to 1080p HD) or change speed between 0.5x and 2.0x."),
+    ("Can I watch videos in Fullscreen or Theater Mode?", "Yes. Click the Fullscreen icon at the bottom right corner of the player, or press the F key on your keyboard.")
+  ]},
+  {"id": "safety", "name": "Child Safety, Well-Being & Health", "items": [
+    ("How do age-group profiles work?", "Spectra organizes content into separate age tiers (Preschool, Kids, Tweens, Teens, and Parents). Each profile only accesses videos, search terms, and recommendations cleared for that specific bracket."),
+    ("How do I switch between child and parent profiles?", "Click the user avatar in the top right, select Switch Profile, and pick the target account. Switching to an older or unrestricted profile requires entering your 5-digit master PIN."),
+    ("Can children change safety settings without permission?", "No. All profile modifications, unrestricted tiers, and safety toggles are locked behind the master 5-digit PIN known only to the parent."),
+    ("What is the Photosensitivity Protection feature?", "Spectra automatically detects rapid light strobing and flashing lights, dampening sudden luminance changes to protect viewers who are sensitive to optical seizure triggers."),
+    ("What is Screamer / Jump-Scare Dampening?", "Our audio safety engine detects sudden, aggressive volume spikes (over 20 dB bursts) and normalizes the sound level to protect young ears and prevent headphone shock."),
+    ("Can parents set daily screen time limits?", "Yes. Under Parental Settings, you can set a daily watch timer. Once reached, a polite break screen appears and locks the player until authorized by the master PIN."),
+    ("What is Dual-PIN Parental Override Mode?", "If a parent wants to temporarily co-watch a higher-tier educational or family video within a child's profile, they can enter their PIN to unlock that specific video without changing accounts.")
+  ]},
+  {"id": "community", "name": "Social, Playlists & Community Interaction", "items": [
+    ("Why can't I see comments on certain videos?", "Comments and open text discussions are automatically disabled on videos inside the Preschool and Kids tiers to protect minors from predatory contact, bullying, and spam."),
+    ("How do I create and manage a custom playlist?", "Click Playlists in the left sidebar, click New Playlist, name it, and add any safe videos using the Save button under video players."),
+    ("Can I subscribe to or follow my favorite safe channels?", "Yes. Click the Subscribe button on any channel banner to have their newest age-appropriate uploads appear at the top of your feed."),
+    ("How do I report a video that seems unsafe or incorrectly categorized?", "Click the Flag / Report button below any video or use the Send Feedback link in the sidebar to send the video directly to our moderation team."),
+    ("What happens after I report a video?", "Reported videos are temporarily flagged and routed to safety auditors, where multimodal logs, transcripts, and frame data are re-inspected against platform rules.")
+  ]},
+  {"id": "troubleshooting", "name": "Technical Troubleshooting & Downloads", "items": [
+    ("Can I download videos to watch offline?", "Yes. Click the Download icon under supported videos to store an encrypted offline copy inside your Spectra app library."),
+    ("Why is a video constantly buffering or pausing?", "Buffering typically indicates an unstable internet connection. Try switching video quality to Auto or 480p in player settings, or refresh your browser tab."),
+    ("Why is the video player showing a black screen with audio only?", "This usually occurs if hardware acceleration in your browser is disabled. Check your browser settings, refresh the page, or clear the cache."),
+    ("How do I clear my search and watch history?", "Go to History on the sidebar menu and click Clear All History, or use the toggle to pause tracking entirely."),
+    ("Does Spectra work on mobile browsers and smart TVs?", "Yes. Spectra is built with a responsive interface optimized for mobile browsers, tablets, and smart TV web browsers."),
+    ("How does Spectra ensure compliance with child privacy laws (COPPA)?", "Spectra does not track, collect, or sell personally identifiable behavioral advertising data on child profiles, and all sanitization actions maintain tamper-evident audit logs."),
+    ("Why did a video suddenly skip a few seconds ahead?", "Your account or player has Auto-Skip enabled, which automatically advances the playhead past remediated segments to the next completely clean timestamp."),
+    ("Can I turn off video autoplay?", "Yes. Toggle the Autoplay switch located in the upper right control bar of the video player to prevent the next video from playing automatically."),
+    ("How do I submit suggestions for new features?", "Click Send Feedback in the left sidebar, choose Feature Suggestion, write your idea, and click submit to share it with our development team.")
+  ]}
+] %}
+
+{% block content %}
+<div class="help-page">
+  <header class="help-header">
+    <div class="help-heading-copy">
+      <span class="help-kicker"><i class="fa-regular fa-circle-question" aria-hidden="true"></i> SPECTRA SUPPORT</span>
+      <h1>Help &amp; FAQ</h1>
+      <p>Clear answers for safer, smoother viewing.</p>
+    </div>
+    <div class="help-header-mark" aria-hidden="true"><i class="fa-solid fa-life-ring"></i></div>
+  </header>
+
+  <div class="faq-search-wrap">
+    <label class="visually-hidden" for="faq-search">Search help topics</label>
+    <i class="fa-solid fa-magnifying-glass faq-search-icon" aria-hidden="true"></i>
+    <input id="faq-search" type="search" placeholder="Search questions, topics, or features..."
+           autocomplete="off" aria-controls="faq-sections"/>
+    <button class="faq-search-clear" id="faq-search-clear" type="button" aria-label="Clear search" hidden>
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+    <kbd class="faq-search-hint" aria-hidden="true">/</kbd>
+  </div>
+
+  <nav class="faq-category-bar" aria-label="FAQ categories">
+    <button class="faq-category-tab is-active" type="button" aria-pressed="true" data-category="all">All Topics <span>40</span></button>
+    {% for category in faq_categories %}
+    <button class="faq-category-tab" type="button" aria-pressed="false" data-category="{{ category.id }}">{{ category.name }}</button>
+    {% endfor %}
+  </nav>
+
+  <div class="faq-results-heading">
+    <h2 id="faq-results-title">All topics</h2>
+    <span id="faq-result-count" aria-live="polite">40 answers</span>
+  </div>
+
+  <div class="faq-sections" id="faq-sections">
+    {% for category in faq_categories %}
+    <section class="faq-category-section" data-faq-section="{{ category.id }}" aria-labelledby="heading-{{ category.id }}">
+      <div class="faq-section-heading">
+        <span class="faq-section-index">{{ "%02d"|format(loop.index) }}</span>
+        <h2 id="heading-{{ category.id }}">{{ category.name }}</h2>
+        <span class="faq-section-count">{{ category["items"]|length }} topics</span>
+      </div>
+      <div class="faq-grid">
+        {% for question, answer in category["items"] %}
+        {% set item_id = category.id ~ '-' ~ loop.index %}
+        <article class="faq-card" data-faq-card data-category="{{ category.id }}">
+          <h3 class="faq-question-heading">
+            <button class="faq-question" type="button" id="question-{{ item_id }}"
+                    aria-expanded="false" aria-controls="answer-{{ item_id }}">
+              <span class="faq-question-copy">{{ question }}</span>
+              <span class="faq-chevron" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+            </button>
+          </h3>
+          <div class="faq-answer" id="answer-{{ item_id }}" role="region"
+               aria-labelledby="question-{{ item_id }}" aria-hidden="true">
+            <div class="faq-answer-inner"><p class="faq-answer-copy">{{ answer }}</p></div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+
+  <div class="faq-empty" id="faq-empty" hidden>
+    <span class="faq-empty-icon"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
+    <h2>No answers found</h2>
+    <p>Try another keyword or clear your search to browse all topics.</p>
+    <button class="btn btn-spectra" id="faq-empty-clear" type="button">
+      <i class="fa-solid fa-rotate-left me-2" aria-hidden="true"></i>Clear Search
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/help.js') }}" defer></script>
+{% endblock %}

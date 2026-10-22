@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+{% block body_class %}auth-page login-page{% endblock %}
+{% block page_controls %}{% endblock %}
+
+{% block body %}
+<!-- ═══ LOGIN WRAPPER ═════════════════════════════════════════════════════ -->
+<div class="auth-wrapper d-flex align-items-center justify-content-center min-vh-100">
+  <div class="auth-card">
+
+    <form id="loginForm">
+      <input type="hidden" id="loginCsrfToken" value="{{ csrf_token }}"/>
+      <div id="loginError" class="alert alert-danger py-2 d-none text-center small"></div>
+      <div class="mb-3">
+        <label class="form-label small text-muted" for="loginEmail">Email or Admin Username</label>
+        <input type="text" class="form-control auth-input" id="loginEmail"
+               placeholder="family@example.com" autocomplete="username" required/>
+      </div>
+      <div class="mb-4">
+        <label class="form-label small text-muted" for="loginPassword">Password</label>
+        <input type="password" class="form-control auth-input" id="loginPassword"
+               placeholder="Enter your password" autocomplete="current-password" required/>
+      </div>
+      <div class="text-end mb-3">
+        <a href="{{ url_for('auth.recover_password_page') }}" class="text-spectra small">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn btn-spectra w-100 mb-3">
+        <i class="fas fa-right-to-bracket me-2"></i>Sign In
+      </button>
+      <div class="text-center">
+        <a href="{{ url_for('auth.register_page') }}" class="text-spectra small">
+          New household? Sign up →
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- ═══ QUICK-SWITCH MODAL ════════════════════════════════════════════════ -->
+<div class="modal fade" id="switchModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content auth-card">
+      <div class="modal-header border-0 pb-0">
+        <h6 class="modal-title"><i class="fas fa-user-switch me-2"></i>Switch Profile</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small text-center mb-3">Enter PIN of the profile to switch to</p>
+        <div class="pin-dots d-flex justify-content-center gap-3 my-3" id="switchDots">
+          <span class="pin-dot" id="sd0"></span>
+          <span class="pin-dot" id="sd1"></span>
+          <span class="pin-dot" id="sd2"></span>
+          <span class="pin-dot" id="sd3"></span>
+          <span class="pin-dot" id="sd4"></span>
+        </div>
+        <div id="switchError" class="alert alert-danger py-2 d-none text-center small"></div>
+        <div class="keypad-grid small-keypad">
+          <button class="keypad-btn" data-switch-digit="1">1</button>
+          <button class="keypad-btn" data-switch-digit="2">2</button>
+          <button class="keypad-btn" data-switch-digit="3">3</button>
+          <button class="keypad-btn" data-switch-digit="4">4</button>
+          <button class="keypad-btn" data-switch-digit="5">5</button>
+          <button class="keypad-btn" data-switch-digit="6">6</button>
+          <button class="keypad-btn" data-switch-digit="7">7</button>
+          <button class="keypad-btn" data-switch-digit="8">8</button>
+          <button class="keypad-btn" data-switch-digit="9">9</button>
+          <button class="keypad-btn keypad-action" id="swClear">C</button>
+          <button class="keypad-btn" data-switch-digit="0">0</button>
+          <button class="keypad-btn keypad-action" id="swBack">⌫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+{% endblock %}
